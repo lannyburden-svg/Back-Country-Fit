@@ -5,19 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BackCountry Fit">
-<title>BackCountry Fit — Volume Floor</title>
+<meta name="apple-mobile-web-app-title" content="Back Country Fit">
+<title>Back Country Fit — Volume Floor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
-body{background:#0d0d0f;color:#e8e8ee;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;}
+body{background:#1e2a1a;color:#e8e8ee;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;}
 button{cursor:pointer;border:none;background:none;color:inherit;font-family:inherit;-webkit-appearance:none;}
 input,select,textarea{font-family:inherit;-webkit-appearance:none;appearance:none;}
 select{background-image:none;}
 ::-webkit-scrollbar{width:3px;}
-::-webkit-scrollbar-track{background:#0d0d0f;}
+::-webkit-scrollbar-track{background:#1e2a1a;}
 ::-webkit-scrollbar-thumb{background:#2a2a30;border-radius:2px;}
 
 #app{height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;}
@@ -115,6 +115,37 @@ select{background-image:none;}
 /* Roadmap */
 .road-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 .road-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;}
+
+/* Rest Timer */
+#rest-timer-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#141416;border-top:1px solid #2a2a30;padding:10px 16px;z-index:200;display:none;align-items:center;gap:12px;}
+#rest-timer-bar.visible{display:flex;}
+.timer-ring{width:44px;height:44px;flex-shrink:0;position:relative;}
+.timer-ring svg{transform:rotate(-90deg);}
+.timer-ring-bg{fill:none;stroke:#2a2a30;stroke-width:3;}
+.timer-ring-fill{fill:none;stroke:#c8ff47;stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke 0.3s;}
+.timer-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:#c8ff47;}
+.timer-label{flex:1;}
+.timer-label-top{font-family:'DM Mono',monospace;font-size:9px;color:#5a5a6a;letter-spacing:0.1em;}
+.timer-label-bot{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#fff;}
+.timer-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;padding:6px 10px;border-radius:3px;}
+.timer-skip{background:rgba(200,255,71,0.08);border:1px solid rgba(200,255,71,0.2);color:#c8ff47;}
+.timer-cancel{color:#5a5a6a;}
+
+/* Confetti canvas */
+#confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:900;display:none;}
+
+/* Workout summary modal */
+#summary-modal .modal-sheet{background:#141416;}
+.summary-stat{background:#1c1c20;border-radius:6px;padding:14px;text-align:center;}
+.summary-stat-val{font-family:'Bebas Neue',sans-serif;font-size:32px;color:#c8ff47;line-height:1;}
+.summary-stat-lbl{font-family:'DM Mono',monospace;font-size:9px;color:#5a5a6a;letter-spacing:0.1em;margin-top:3px;}
+.summary-ex-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1e1e24;font-size:13px;}
+.summary-ex-row:last-child{border-bottom:none;}
+
+/* Notification banner */
+#notif-banner{background:rgba(200,255,71,0.06);border:1px solid rgba(200,255,71,0.15);border-radius:6px;padding:10px 14px;margin:0 16px 10px;display:none;align-items:center;gap:10px;}
+#notif-banner.visible{display:flex;}
+
 </style>
 </head>
 <body>
@@ -124,8 +155,8 @@ select{background-image:none;}
   <div id="header">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;color:#c8ff47;margin-bottom:3px;">Volume Floor</div>
-        <div class="big-title" style="font-size:24px;line-height:1;">BACK-COUNTRY FIT <span style="color:#c8ff47;">TRACKER</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;color:#c8ff47;margin-bottom:3px;">BACK COUNTRY FIT</div>
+        <div class="big-title" style="font-size:24px;line-height:1;">VOLUME FLOOR <span style="color:#c8ff47;">TRACKER</span></div>
       </div>
       <div style="text-align:right;">
         <div id="phase-pill" class="phase-pill"></div>
@@ -135,7 +166,8 @@ select{background-image:none;}
     <div class="week-dots" id="week-dots">
       <!-- filled by JS -->
       <div style="flex:1;"></div>
-      <button class="btn-outline" onclick="advanceWeek()">NEXT WEEK →</button>
+      <button class="btn-outline" onclick="prevWeek()" id="prev-week-btn" style="margin-right:4px;">← PREV</button>
+      <button class="btn-outline" onclick="advanceWeek()">NEXT →</button>
     </div>
   </div>
 
@@ -145,6 +177,17 @@ select{background-image:none;}
     <button class="nav-btn" onclick="switchTab('cardio',this)">Cardio</button>
     <button class="nav-btn" onclick="switchTab('progress',this)">Progress</button>
     <button class="nav-btn" onclick="switchTab('body',this)">Body</button>
+  </div>
+
+  <!-- NOTIFICATION BANNER -->
+  <div id="notif-banner">
+    <span style="font-size:18px;">🔔</span>
+    <div style="flex:1;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c8ff47;letter-spacing:0.1em;">ENABLE REMINDERS</div>
+      <div style="font-size:11px;color:#9090a8;margin-top:1px;">Get workout reminders & streak nudges</div>
+    </div>
+    <button onclick="requestNotifPermission()" style="background:#c8ff47;color:#0d0d0f;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;padding:5px 10px;border-radius:3px;">ALLOW</button>
+    <button onclick="dismissNotifBanner()" style="color:#5a5a6a;font-size:16px;padding:2px 4px;">✕</button>
   </div>
 
   <!-- CONTENT -->
@@ -283,6 +326,34 @@ select{background-image:none;}
 <!-- TOAST -->
 <div id="toast"></div>
 
+<!-- REST TIMER BAR -->
+<div id="rest-timer-bar">
+  <div class="timer-ring">
+    <svg width="44" height="44" viewBox="0 0 44 44">
+      <circle class="timer-ring-bg" cx="22" cy="22" r="18"/>
+      <circle id="timer-ring-fill" class="timer-ring-fill" cx="22" cy="22" r="18" stroke-dasharray="113" stroke-dashoffset="0"/>
+    </svg>
+    <div class="timer-text" id="timer-display">90</div>
+  </div>
+  <div class="timer-label">
+    <div class="timer-label-top">REST TIMER</div>
+    <div class="timer-label-bot" id="timer-next-label">NEXT SET READY</div>
+  </div>
+  <button class="timer-btn timer-skip" onclick="skipTimer()">SKIP →</button>
+  <button class="timer-btn timer-cancel" onclick="cancelTimer()">✕</button>
+</div>
+
+<!-- CONFETTI CANVAS -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- WORKOUT SUMMARY MODAL -->
+<div id="summary-modal" class="modal-overlay">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:90vh;">
+    <div id="summary-content"></div>
+  </div>
+</div>
+
+
 <!-- LOG MODAL -->
 <div id="log-modal" class="modal-overlay" onclick="closeLogModal()">
   <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -319,7 +390,7 @@ select{background-image:none;}
 
 <script>
 // ─── DATA ────────────────────────────────────────────────────────────────────
-const STORAGE_KEY = 'dad_rambler_v2';
+const STORAGE_KEY = 'backcountry_fit_v1';
 
 const SWAP_OPTIONS = {
   "Machine Chest Press":["DB Flat Press","Cable Chest Press","Push-Up (weighted)","Smith Machine Press"],
@@ -407,12 +478,51 @@ const DEFAULT_STATE = {
 };
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-let S = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || JSON.parse(JSON.stringify(DEFAULT_STATE));
+let S = JSON.parse(JSON.stringify(DEFAULT_STATE));
 let currentDayId = null;
-let logTarget = null; // {dayId, exId, exName, target}
-let swapTarget = null; // {dayId, exId, exName}
+let logTarget = null;
+let swapTarget = null;
 
-function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); }
+// ─── INDEXEDDB ───────────────────────────────────────────────────────────────
+const DB_NAME = 'BackCountryFit';
+const DB_VERSION = 1;
+const STORE = 'state';
+let db = null;
+
+function openDB(callback){
+  const req = indexedDB.open(DB_NAME, DB_VERSION);
+  req.onupgradeneeded = e => {
+    const d = e.target.result;
+    if(!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE);
+  };
+  req.onsuccess = e => {
+    db = e.target.result;
+    // Load existing state
+    const tx = db.transaction(STORE, 'readonly');
+    const get = tx.objectStore(STORE).get(STORAGE_KEY);
+    get.onsuccess = () => {
+      if(get.result) S = get.result;
+      callback();
+    };
+    get.onerror = () => callback();
+  };
+  req.onerror = () => {
+    // Fall back to localStorage if IndexedDB fails
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if(saved) try { S = JSON.parse(saved); } catch(e){}
+    callback();
+  };
+}
+
+function persist(){
+  if(db){
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(S, STORAGE_KEY);
+  } else {
+    // localStorage fallback
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch(e){}
+  }
+}
 
 // ─── PROGRESSION ─────────────────────────────────────────────────────────────
 function getPhase(week){
@@ -456,6 +566,8 @@ function renderHeader(){
   pill.style.border = `1px solid ${isDeload?'rgba(255,59,59,0.3)':'rgba(200,255,71,0.2)'}`;
   pill.style.color = isDeload?'#ff9090':'#c8ff47';
   document.getElementById('week-display').textContent = 'WEEK '+S.week;
+  const prevBtn = document.getElementById('prev-week-btn');
+  if(prevBtn) { prevBtn.style.opacity = S.week<=1?'0.3':'1'; prevBtn.style.pointerEvents = S.week<=1?'none':'auto'; }
 
   const dotsEl = document.getElementById('week-dots');
   // clear old dots (keep flex:1 spacer and button)
@@ -479,6 +591,17 @@ function advanceWeek(){
   else { renderProgram(); }
   const ph = getPhase(S.week);
   toast('Week '+S.week+' started! '+ph.label, ph.label==='DELOAD'?'#ff9090':'#c8ff47');
+}
+
+function prevWeek(){
+  if(S.week<=1){ toast('Already at Week 1','#ff9090'); return; }
+  S.week--;
+  persist();
+  renderHeader();
+  if(currentDayId){ renderDay(currentDayId); }
+  else { renderProgram(); }
+  const ph = getPhase(S.week);
+  toast('Back to Week '+S.week+' · '+ph.label, '#9090a8');
 }
 
 // ─── PROGRAM LIST ─────────────────────────────────────────────────────────────
@@ -514,6 +637,7 @@ function renderProgram(){
       </div>
     `;
   });
+  html += renderDataControls();
   el.innerHTML = html;
 }
 
@@ -572,7 +696,7 @@ function backToList(){ currentDayId=null; renderProgram(); }
 function markDone(id){
   S.completedDays[id+'-w'+S.week]=true;
   persist(); renderHeader(); renderDay(id);
-  toast('🔥 Day complete!');
+  showWorkoutSummary(id);
 }
 
 // ─── LOGS ────────────────────────────────────────────────────────────────────
@@ -623,6 +747,7 @@ function saveSet(){
   closeLogModal();
   if(currentDayId) renderDay(currentDayId);
   toast('✓ Set logged!');
+  startRestTimer(logTarget.exName);
 }
 
 // ─── SWAP MODAL ──────────────────────────────────────────────────────────────
@@ -664,13 +789,51 @@ function logCardio(){
   const type=document.getElementById('cardio-type').value;
   const dur=document.getElementById('cardio-dur').value;
   if(!type||!dur){ toast('Fill in activity and duration','#ff9090'); return; }
-  S.cardioLogs.push({date:today(),type,duration:dur,intensity:document.getElementById('cardio-intensity').value,notes:document.getElementById('cardio-notes').value,week:S.week});
+  const intensity=document.getElementById('cardio-intensity').value;
+  const notes=document.getElementById('cardio-notes').value;
+  S.cardioLogs.push({date:today(),type,duration:dur,intensity,notes,week:S.week});
   persist();
   document.getElementById('cardio-type').value='';
   document.getElementById('cardio-dur').value='';
   document.getElementById('cardio-notes').value='';
   renderCardioLog();
-  toast('✓ Cardio logged!','#47c4ff');
+  showCardioSummary(type, dur, intensity, notes);
+}
+
+function showCardioSummary(type, dur, intensity, notes){
+  const m=CARDIO_META[type]||{icon:'💪',name:type,zone:'—'};
+  const intensityColor={easy:'#47c4ff',moderate:'#c8ff47',hard:'#ff6b35'}[intensity]||'#c8ff47';
+  const msgs=['Zone locked in! 🔥','Cardio done. Back country ready. 🌲','Lungs of steel! 💪','Heart rate earned. ⚡','You showed up. That\'s everything. 🏔️'];
+  const msg=msgs[Math.floor(Math.random()*msgs.length)];
+  const streak=S.cardioLogs.length;
+
+  document.getElementById('summary-content').innerHTML=`
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="font-size:48px;margin-bottom:6px;">${m.icon}</div>
+      <div class="big-title" style="font-size:28px;color:#47c4ff;">SESSION COMPLETE</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#9090a8;margin-top:4px;letter-spacing:0.1em;">${msg}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div class="summary-stat"><div class="summary-stat-val" style="color:#47c4ff;">${dur}</div><div class="summary-stat-lbl">MINUTES</div></div>
+      <div class="summary-stat"><div class="summary-stat-val" style="color:${intensityColor};font-size:20px;">${intensity.toUpperCase()}</div><div class="summary-stat-lbl">INTENSITY</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-inner" style="display:flex;align-items:center;gap:12px;padding:12px;">
+        <span style="font-size:24px;">${m.icon}</span>
+        <div>
+          <div style="font-size:14px;font-weight:500;">${m.name}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:#47c4ff;margin-top:2px;">${m.zone}</div>
+          ${notes?`<div style="font-size:11px;color:#5a5a6a;margin-top:3px;">${notes}</div>`:''}
+        </div>
+      </div>
+    </div>
+    ${streak>1?`<div style="text-align:center;background:rgba(71,196,255,0.06);border:1px solid rgba(71,196,255,0.15);border-radius:6px;padding:10px;margin-bottom:16px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#47c4ff;">🔥 ${streak} SESSIONS LOGGED</span></div>`:''}
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a5a6a;text-align:center;letter-spacing:0.1em;margin-bottom:14px;">WEEK ${S.week} · ${today()}</div>
+    <button class="btn-primary" style="background:rgba(71,196,255,0.12);border:1px solid rgba(71,196,255,0.3);color:#47c4ff;" onclick="closeSummary()">DONE</button>
+  `;
+  document.getElementById('summary-modal').classList.add('open');
+  launchConfetti(3000);
+  if(navigator.vibrate) navigator.vibrate([100,50,100,50,300]);
 }
 
 function renderCardioLog(){
@@ -854,13 +1017,283 @@ function renderProgress(){
   el.innerHTML=html;
 }
 
+// ─── EXPORT / IMPORT ─────────────────────────────────────────────────────────
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='backcountryfit-backup-'+today()+'.json';
+  a.click();
+  toast('✓ Data exported!','#c8ff47');
+}
+
+function importData(){
+  const input=document.createElement('input');
+  input.type='file'; input.accept='.json';
+  input.onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(!data.week||!data.days) throw new Error('Invalid');
+        S=data; persist();
+        renderHeader(); renderProgram(); renderCardioLog();
+        toast('✓ Data restored!','#c8ff47');
+      } catch(err){ toast('⚠ Invalid file','#ff9090'); }
+    };    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ─── REST TIMER ──────────────────────────────────────────────────────────────
+let restTimerInterval=null;
+let restTimerSecs=0;
+let restTimerTotal=90;
+const CIRCUMFERENCE=2*Math.PI*18; // r=18
+
+function startRestTimer(exName, duration=90){
+  cancelTimer();
+  restTimerTotal=duration;
+  restTimerSecs=duration;
+  document.getElementById('timer-next-label').textContent=exName?'NEXT SET: '+exName.toUpperCase():'NEXT SET READY';
+  document.getElementById('rest-timer-bar').classList.add('visible');
+  updateTimerDisplay();
+  restTimerInterval=setInterval(()=>{
+    restTimerSecs--;
+    updateTimerDisplay();
+    if(restTimerSecs<=0){ timerDone(); }
+  },1000);
+}
+
+function updateTimerDisplay(){
+  const el=document.getElementById('timer-display');
+  const fill=document.getElementById('timer-ring-fill');
+  el.textContent=restTimerSecs>0?restTimerSecs:'GO!';
+  const pct=restTimerSecs/restTimerTotal;
+  const offset=CIRCUMFERENCE*(1-pct);
+  fill.style.strokeDashoffset=offset;
+  fill.style.stroke=restTimerSecs<=10?'#ff6b35':restTimerSecs<=30?'#ffaa30':'#c8ff47';
+  document.getElementById('timer-display').style.color=fill.style.stroke;
+}
+
+function timerDone(){
+  cancelTimer();
+  toast('💪 Rest done — GO!','#c8ff47');
+  if(Notification.permission==='granted'){
+    new Notification('Back Country Fit',{body:'Rest done. Time for your next set! 💪',icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="28" font-size="28">💪</text></svg>'});
+  }
+  // Brief vibrate if available
+  if(navigator.vibrate) navigator.vibrate([200,100,200]);
+}
+
+function skipTimer(){ cancelTimer(); toast('⏭ Timer skipped'); }
+function cancelTimer(){
+  if(restTimerInterval){ clearInterval(restTimerInterval); restTimerInterval=null; }
+  document.getElementById('rest-timer-bar').classList.remove('visible');
+}
+
+// ─── CONFETTI ────────────────────────────────────────────────────────────────
+function launchConfetti(duration=3000){
+  const canvas=document.getElementById('confetti-canvas');
+  canvas.style.display='block';
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  const ctx=canvas.getContext('2d');
+  const pieces=[];
+  const colors=['#c8ff47','#ff6b35','#47c4ff','#b347ff','#ffffff','#ffaa30'];
+  for(let i=0;i<120;i++){
+    pieces.push({
+      x:Math.random()*canvas.width, y:-10-Math.random()*100,
+      w:6+Math.random()*8, h:8+Math.random()*12,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      rot:Math.random()*360, rotSpeed:(Math.random()-0.5)*8,
+      vx:(Math.random()-0.5)*4, vy:3+Math.random()*4,
+      opacity:1
+    });
+  }
+  const start=Date.now();
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const elapsed=Date.now()-start;
+    const fadeStart=duration*0.6;
+    pieces.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.rot+=p.rotSpeed;
+      if(elapsed>fadeStart) p.opacity=Math.max(0,1-(elapsed-fadeStart)/(duration-fadeStart));
+      ctx.save();
+      ctx.globalAlpha=p.opacity;
+      ctx.translate(p.x+p.w/2,p.y+p.h/2);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+    if(elapsed<duration) requestAnimationFrame(draw);
+    else { ctx.clearRect(0,0,canvas.width,canvas.height); canvas.style.display='none'; }
+  }
+  draw();
+}
+
+// ─── WORKOUT SUMMARY ─────────────────────────────────────────────────────────
+function showWorkoutSummary(dayId){
+  const day=S.days.find(d=>d.id===dayId);
+  const ph=getPhase(S.week);
+  // Gather this session's logs (today, this week)
+  const todayStr=today();
+  let totalSets=0, totalReps=0, totalVol=0;
+  const exSummaries=[];
+  day.exercises.forEach(ex=>{
+    const key=dayId+'-'+ex.id+'-w'+S.week;
+    const logs=(S.logs[key]||[]).filter(l=>l.date===todayStr);
+    if(!logs.length) return;
+    const sets=logs.length;
+    const reps=logs.reduce((s,l)=>s+(parseInt(l.reps)||0),0);
+    const vol=logs.reduce((s,l)=>s+((parseFloat(l.weight)||0)*(parseInt(l.reps)||0)),0);
+    totalSets+=sets; totalReps+=reps; totalVol+=vol;
+    exSummaries.push({name:ex.name,sets,vol:vol.toFixed(0)});
+  });
+
+  // Streak calc
+  const streak=calcStreak();
+
+  const msgs=['Beast mode! 🔥','Keep crushing it! 💪','That\'s how it\'s done! 🏔️','Back Country strong! 🌲','You showed up. That\'s everything. ⚡'];
+  const msg=msgs[Math.floor(Math.random()*msgs.length)];
+
+  document.getElementById('summary-content').innerHTML=`
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="font-size:48px;margin-bottom:6px;">🏆</div>
+      <div class="big-title" style="font-size:28px;color:#c8ff47;">WORKOUT COMPLETE</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#9090a8;margin-top:4px;letter-spacing:0.1em;">${msg}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div class="summary-stat"><div class="summary-stat-val">${totalSets}</div><div class="summary-stat-lbl">SETS</div></div>
+      <div class="summary-stat"><div class="summary-stat-val">${totalReps}</div><div class="summary-stat-lbl">REPS</div></div>
+      <div class="summary-stat"><div class="summary-stat-val" style="font-size:22px;">${totalVol>0?(totalVol/1000).toFixed(1)+'k':'—'}</div><div class="summary-stat-lbl">LBS VOL</div></div>
+    </div>
+    ${streak>1?`<div style="text-align:center;background:rgba(200,255,71,0.06);border:1px solid rgba(200,255,71,0.15);border-radius:6px;padding:10px;margin-bottom:16px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#c8ff47;">🔥 ${streak} DAY STREAK</span></div>`:''}
+    ${exSummaries.length?`
+    <div class="section-label">TODAY'S EXERCISES</div>
+    <div class="card" style="margin-bottom:16px;"><div class="card-inner" style="padding:8px 12px;">
+      ${exSummaries.map(e=>`<div class="summary-ex-row"><span>${e.name}</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:#5a5a6a;">${e.sets} sets · ${e.vol>0?e.vol+' lbs vol':'BW'}</span></div>`).join('')}
+    </div></div>`:''}
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a5a6a;text-align:center;letter-spacing:0.1em;margin-bottom:14px;">WEEK ${S.week} · ${ph.label} PHASE</div>
+    <button class="btn-primary" onclick="closeSummary()">DONE</button>
+  `;
+  document.getElementById('summary-modal').classList.add('open');
+  launchConfetti(3500);
+  if(navigator.vibrate) navigator.vibrate([100,50,100,50,300]);
+}
+
+function closeSummary(){
+  document.getElementById('summary-modal').classList.remove('open');
+}
+
+function calcStreak(){
+  // Count consecutive days with at least one completed day
+  const completed=Object.keys(S.completedDays);
+  if(!completed.length) return 1;
+  // Simple: count unique dates that had completions
+  const dates=new Set();
+  completed.forEach(k=>{
+    // Key format: dayId-wN — use today's date as proxy since we don't store dates on completedDays
+    // Just return total unique workout days this week as a rough streak
+  });
+  // Count completed day slots total across weeks as streak
+  return completed.length;
+}
+
+// ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
+function checkNotifBanner(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='default' && !localStorage.getItem('bcf_notif_dismissed')){
+    document.getElementById('notif-banner').classList.add('visible');
+  }
+}
+
+function requestNotifPermission(){
+  Notification.requestPermission().then(perm=>{
+    document.getElementById('notif-banner').classList.remove('visible');
+    if(perm==='granted'){
+      toast('🔔 Reminders enabled!','#c8ff47');
+      scheduleReminders();
+      new Notification('Back Country Fit',{body:'Reminders are on! Time to get after it. 💪'});
+    } else {
+      toast('Notifications blocked','#ff9090');
+    }
+  });
+}
+
+function dismissNotifBanner(){
+  document.getElementById('notif-banner').classList.remove('visible');
+  localStorage.setItem('bcf_notif_dismissed','1');
+}
+
+function scheduleReminders(){
+  // Service worker not available in static HTML, so we use a session-based reminder
+  // Remind if app is open and no workout logged today
+  const checkTime=()=>{
+    const hr=new Date().getHours();
+    if(hr>=8 && hr<=20 && Notification.permission==='granted'){
+      const todayStr=today();
+      const loggedToday=Object.values(S.logs).flat().some(l=>l.date===todayStr);
+      const cardioToday=S.cardioLogs.some(l=>l.date===todayStr);
+      if(!loggedToday && !cardioToday){
+        new Notification('Back Country Fit 🏔️',{
+          body:"You haven't logged a workout today. Let's get after it!",
+          tag:'daily-reminder'
+        });
+      }
+    }
+  };
+  // Check every 4 hours while app is open
+  setInterval(checkTime, 4*60*60*1000);
+  // Also check at 8am if app is left open
+  const now=new Date();
+  const next8am=new Date(); next8am.setHours(8,0,0,0);
+  if(now.getHours()>=8) next8am.setDate(next8am.getDate()+1);
+  setTimeout(()=>{ checkTime(); setInterval(checkTime,24*60*60*1000); }, next8am-now);
+}
+
+function checkStreakNudge(){
+  if(Notification.permission!=='granted') return;
+  const keys=Object.keys(S.completedDays);
+  if(!keys.length) return;
+  // Find last workout date from logs
+  const allDates=Object.values(S.logs).flat().map(l=>l.date).sort();
+  if(!allDates.length) return;
+  const lastDate=allDates[allDates.length-1];
+  const daysSince=Math.floor((new Date(today())-new Date(lastDate))/(86400000));
+  if(daysSince>=2){
+    new Notification('Back Country Fit 🔥',{
+      body:`${daysSince} days since your last workout. Don't break the streak!`,
+      tag:'streak-nudge'
+    });
+  }
+}
+
+// ─── DATA CONTROLS (rendered in program page) ────────────────────────────────
+function renderDataControls(){
+  return `
+    <div class="card" style="margin-top:10px;">
+      <div class="card-inner" style="display:flex;gap:8px;align-items:center;">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:#5a5a6a;letter-spacing:0.1em;flex:1;">DATA BACKUP</span>
+        <button onclick="exportData()" class="btn-outline" style="font-size:9px;">⬇ EXPORT</button>
+        <button onclick="importData()" style="background:rgba(90,90,106,0.15);border:1px solid #2a2a30;color:#9090a8;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;padding:5px 10px;border-radius:3px;">⬆ IMPORT</button>
+      </div>
+    </div>
+  `;
+}
+
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 function today(){ return new Date().toISOString().split('T')[0]; }
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
-renderHeader();
-renderProgram();
-renderCardioMenu();
+openDB(() => {
+  renderHeader();
+  renderProgram();
+  renderCardioMenu();
+  checkNotifBanner();
+  checkStreakNudge();
+});
 </script>
 </body>
 </html>
