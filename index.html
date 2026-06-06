@@ -6,13 +6,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="BCFit" />
-  <meta name="theme-color" content="#0d0d0d" />
+  <meta name="theme-color" content="#162e4a" />
   <title>Backcountry Fit</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { background: #0d0d0d; height: 100%; overflow: hidden; }
+    html, body { background: #162e4a; height: 100%; overflow: hidden; }
     #root { height: 100%; }
     ::-webkit-scrollbar { width: 0; }
   </style>
@@ -58,6 +60,7 @@ const DEFAULT_STATE = {
   completedSets:{},loggedMeals:{},water:0,
   workoutsThisWeek:2,currentWeek:6,streak:5,lastSaved:null,
   weightLog:[],macroTargets:{cal:3300,p:246,c:340,f:84},photoMeals:[],
+  activities:[],stravaConnected:false,stravaClientId:"",
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -66,7 +69,7 @@ function MacroRing({value,max,color,size=80,stroke=8,label,unit}) {
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
       <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1e1e1e" strokeWidth={stroke}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#3a5f8a" strokeWidth={stroke}/>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" style={{transition:"stroke-dasharray 0.6s ease"}}/>
         <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
@@ -82,6 +85,27 @@ function MacroRing({value,max,color,size=80,stroke=8,label,unit}) {
 function SaveBadge({status}) {
   const c={saving:["#ff9f6b","SAVING…","⟳"],saved:["#6bffb8","SAVED","✓"],error:["#ff6b6b","ERROR","✕"],idle:["#333","AUTO-SAVE ON","☁"]}[status]||["#333","AUTO-SAVE ON","☁"];
   return <div style={{display:"flex",alignItems:"center",gap:4,fontSize:9,color:c[0],fontWeight:700,letterSpacing:1,transition:"color 0.3s"}}><span style={{fontSize:11}}>{c[2]}</span>{c[1]}</div>;
+}
+
+
+// ── Confetti ────────────────────────────────────────────────────────────────
+function Confetti() {
+  const piecesRef = React.useRef(null);
+  if (!piecesRef.current) {
+    const colors = ["#e8ff6b","#6bffb8","#ff9f6b","#6bbaff","#ff6b9f","#ffffff","#ffe06b"];
+    piecesRef.current = Array.from({length:80},(_,i)=>({
+      id:i, left:Math.random()*100, width:6+Math.random()*8, height:10+Math.random()*8,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      delay:Math.random()*1.2, duration:2.5+Math.random()*1.5,
+    }));
+  }
+  return React.createElement('div',{style:{position:"fixed",inset:0,pointerEvents:"none",zIndex:199}},
+    piecesRef.current.map(p=>React.createElement('div',{
+      key:p.id, className:"confetti-piece",
+      style:{left:`${p.left}%`,width:p.width,height:p.height,background:p.color,
+        animationDelay:`${p.delay}s`,animationDuration:`${p.duration}s`}
+    }))
+  );
 }
 
 // ── Rest Timer ─────────────────────────────────────────────────────────────────
@@ -102,7 +126,7 @@ function RestTimer({onClose}) {
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:100,fontFamily:"'Barlow Condensed',sans-serif"}}>
       <div style={{fontSize:11,letterSpacing:3,color:"#e8ff6b",fontWeight:700,marginBottom:20}}>REST TIMER</div>
       <svg width={130} height={130} style={{transform:"rotate(-90deg)",marginBottom:20}}>
-        <circle cx={65} cy={65} r={r} fill="none" stroke="#1e1e1e" strokeWidth={10}/>
+        <circle cx={65} cy={65} r={r} fill="none" stroke="#3a5f8a" strokeWidth={10}/>
         <circle cx={65} cy={65} r={r} fill="none" stroke={seconds<=10?"#ff6b6b":"#e8ff6b"} strokeWidth={10}
           strokeDasharray={`${pct*circ} ${circ}`} strokeLinecap="round" style={{transition:"stroke-dasharray 0.9s linear,stroke 0.3s"}}/>
         <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
@@ -113,7 +137,7 @@ function RestTimer({onClose}) {
       {seconds===0&&<div style={{fontSize:22,fontWeight:900,color:"#e8ff6b",marginBottom:16}}>REST DONE!</div>}
       <div style={{display:"flex",gap:8,marginBottom:20}}>
         {[60,90,120,180].map(s=>(
-          <button key={s} onClick={()=>setTimer(s)} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${initial===s?"#e8ff6b":"#2a2a2a"}`,background:initial===s?"#1a2a0a":"#141414",color:initial===s?"#e8ff6b":"#555",fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer"}}>{s}s</button>
+          <button key={s} onClick={()=>setTimer(s)} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${initial===s?"#e8ff6b":"#2a2a2a"}`,background:initial===s?"#1a2a0a":"#1e3d65",color:initial===s?"#e8ff6b":"#555",fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer"}}>{s}s</button>
         ))}
       </div>
       <div style={{display:"flex",gap:12}}>
@@ -164,7 +188,7 @@ function PhotoFoodLogger({onAdd,onClose,apiKey}) {
             <div style={{fontSize:11,letterSpacing:3,color:"#e8ff6b",fontWeight:700}}>AI FOOD SCANNER</div>
             <div style={{fontSize:24,fontWeight:900}}>SNAP YOUR MEAL</div>
           </div>
-          <button onClick={onClose} style={{background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:8,padding:"8px 14px",color:"#888",fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer"}}>✕ CLOSE</button>
+          <button onClick={onClose} style={{background:"#224270",border:"1px solid #2a2a2a",borderRadius:8,padding:"8px 14px",color:"#888",fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer"}}>✕ CLOSE</button>
         </div>
         {stage==="upload"&&(
           <div>
@@ -195,12 +219,12 @@ function PhotoFoodLogger({onAdd,onClose,apiKey}) {
               <div style={{fontSize:22,fontWeight:900,marginBottom:4}}>{result.name}</div>
               <div style={{fontSize:11,color:"#555",fontFamily:"'Barlow',sans-serif",marginBottom:14}}>{result.items?.join(" · ")}</div>
               <div style={{display:"flex",gap:10,marginBottom:14}}>
-                <div style={{flex:1,background:"#141414",borderRadius:10,padding:"12px 8px",textAlign:"center"}}>
+                <div style={{flex:1,background:"#1e3d65",borderRadius:10,padding:"12px 8px",textAlign:"center"}}>
                   <div style={{fontSize:26,fontWeight:900,color:"#e8ff6b"}}>{result.cal}</div>
                   <div style={{fontSize:9,color:"#555",fontWeight:700,letterSpacing:1}}>KCAL</div>
                 </div>
                 {[["PROTEIN",result.p,"#e8ff6b"],["CARBS",result.c,"#6bffb8"],["FAT",result.f,"#ff9f6b"]].map(([l,v,c])=>(
-                  <div key={l} style={{flex:1,background:"#141414",borderRadius:10,padding:"12px 8px",textAlign:"center"}}>
+                  <div key={l} style={{flex:1,background:"#1e3d65",borderRadius:10,padding:"12px 8px",textAlign:"center"}}>
                     <div style={{fontSize:26,fontWeight:900,color:c}}>{v}g</div>
                     <div style={{fontSize:9,color:"#555",fontWeight:700,letterSpacing:1}}>{l}</div>
                   </div>
@@ -209,8 +233,8 @@ function PhotoFoodLogger({onAdd,onClose,apiKey}) {
               <div style={{fontSize:10,color:"#555",fontFamily:"'Barlow',sans-serif",fontStyle:"italic"}}>⚠ AI estimates — actual values may vary</div>
             </div>
             <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>{onAdd(result);onClose();}} style={{flex:1,background:"#e8ff6b",color:"#0d0d0d",border:"none",padding:16,borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,cursor:"pointer"}}>LOG THIS MEAL ✓</button>
-              <button onClick={()=>{setStage("upload");setPreview(null);setResult(null);}} style={{background:"#1a1a1a",border:"1px solid #2a2a2a",padding:"16px 18px",borderRadius:10,color:"#888",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer"}}>RETAKE</button>
+              <button onClick={()=>{onAdd(result);onClose();}} style={{flex:1,background:"#e8ff6b",color:"#162e4a",border:"none",padding:16,borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,cursor:"pointer"}}>LOG THIS MEAL ✓</button>
+              <button onClick={()=>{setStage("upload");setPreview(null);setResult(null);}} style={{background:"#224270",border:"1px solid #2a2a2a",padding:"16px 18px",borderRadius:10,color:"#888",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer"}}>RETAKE</button>
             </div>
           </div>
         )}
@@ -218,7 +242,7 @@ function PhotoFoodLogger({onAdd,onClose,apiKey}) {
           <div style={{textAlign:"center",paddingTop:40}}>
             <div style={{fontSize:36,marginBottom:12}}>⚠️</div>
             <div style={{fontSize:18,fontWeight:900,color:"#ff6b6b",marginBottom:8}}>{errorMsg}</div>
-            <button onClick={()=>setStage("upload")} style={{background:"#e8ff6b",color:"#0d0d0d",border:"none",padding:"12px 28px",borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,cursor:"pointer",marginTop:16}}>TRY AGAIN</button>
+            <button onClick={()=>setStage("upload")} style={{background:"#e8ff6b",color:"#162e4a",border:"none",padding:"12px 28px",borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,cursor:"pointer",marginTop:16}}>TRY AGAIN</button>
           </div>
         )}
       </div>
@@ -232,7 +256,7 @@ function MacroEditor({targets,onSave,onClose}) {
   const set=(k,v)=>setVals(p=>({...p,[k]:Math.max(0,parseInt(v)||0)}));
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:100,display:"flex",alignItems:"flex-end",fontFamily:"'Barlow Condensed',sans-serif"}}>
-      <div style={{width:"100%",maxWidth:480,margin:"0 auto",background:"#111",borderRadius:"20px 20px 0 0",padding:"24px 20px 40px",borderTop:"1px solid #1e1e1e"}}>
+      <div style={{width:"100%",maxWidth:480,margin:"0 auto",background:"#1e4068",borderRadius:"20px 20px 0 0",padding:"24px 20px 40px",borderTop:"1px solid #3a5f8a"}}>
         <div style={{fontSize:11,letterSpacing:3,color:"#e8ff6b",fontWeight:700,marginBottom:4}}>CUSTOMIZE</div>
         <div style={{fontSize:26,fontWeight:900,marginBottom:20}}>MACRO TARGETS</div>
         {[{key:"cal",label:"Calories",unit:"kcal",color:"#f0ede6"},{key:"p",label:"Protein",unit:"g",color:"#e8ff6b"},{key:"c",label:"Carbohydrates",unit:"g",color:"#6bffb8"},{key:"f",label:"Fat",unit:"g",color:"#ff9f6b"}].map(({key,label,unit,color})=>(
@@ -242,16 +266,16 @@ function MacroEditor({targets,onSave,onClose}) {
               <div style={{fontSize:11,color:"#555"}}>per day</div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <button onClick={()=>set(key,vals[key]-(key==="cal"?50:5))} style={{width:40,height:40,borderRadius:8,background:"#1a1a1a",border:"1px solid #2a2a2a",color:"#888",fontSize:20,fontWeight:900,cursor:"pointer"}}>−</button>
-              <input type="number" value={vals[key]} onChange={e=>set(key,e.target.value)} style={{flex:1,background:"#1a1a1a",border:`1px solid ${color}44`,borderRadius:8,padding:"10px 14px",color:color,fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,textAlign:"center"}}/>
+              <button onClick={()=>set(key,vals[key]-(key==="cal"?50:5))} style={{width:40,height:40,borderRadius:8,background:"#224270",border:"1px solid #2a2a2a",color:"#888",fontSize:20,fontWeight:900,cursor:"pointer"}}>−</button>
+              <input type="number" value={vals[key]} onChange={e=>set(key,e.target.value)} style={{flex:1,background:"#224270",border:`1px solid ${color}44`,borderRadius:8,padding:"10px 14px",color:color,fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,textAlign:"center"}}/>
               <div style={{fontSize:12,color:"#555",fontWeight:700,minWidth:30}}>{unit}</div>
-              <button onClick={()=>set(key,vals[key]+(key==="cal"?50:5))} style={{width:40,height:40,borderRadius:8,background:"#1a1a1a",border:"1px solid #2a2a2a",color:"#888",fontSize:20,fontWeight:900,cursor:"pointer"}}>+</button>
+              <button onClick={()=>set(key,vals[key]+(key==="cal"?50:5))} style={{width:40,height:40,borderRadius:8,background:"#224270",border:"1px solid #2a2a2a",color:"#888",fontSize:20,fontWeight:900,cursor:"pointer"}}>+</button>
             </div>
           </div>
         ))}
         <div style={{display:"flex",gap:10,marginTop:8}}>
-          <button onClick={()=>{onSave(vals);onClose();}} style={{flex:1,background:"#e8ff6b",color:"#0d0d0d",border:"none",padding:16,borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,cursor:"pointer"}}>SAVE TARGETS</button>
-          <button onClick={onClose} style={{background:"#1a1a1a",border:"1px solid #2a2a2a",padding:"16px 18px",borderRadius:10,color:"#888",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer"}}>CANCEL</button>
+          <button onClick={()=>{onSave(vals);onClose();}} style={{flex:1,background:"#e8ff6b",color:"#162e4a",border:"none",padding:16,borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,cursor:"pointer"}}>SAVE TARGETS</button>
+          <button onClick={onClose} style={{background:"#224270",border:"1px solid #2a2a2a",padding:"16px 18px",borderRadius:10,color:"#888",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer"}}>CANCEL</button>
         </div>
       </div>
     </div>
@@ -262,15 +286,15 @@ function MacroEditor({targets,onSave,onClose}) {
 function ApiKeySetup({onSave}) {
   const [key,setKey]=useState("");
   return (
-    <div style={{position:"fixed",inset:0,background:"#0d0d0d",zIndex:200,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Barlow Condensed',sans-serif"}}>
+    <div style={{position:"fixed",inset:0,background:"#162e4a",zIndex:200,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Barlow Condensed',sans-serif"}}>
       <div style={{fontSize:48,marginBottom:16}}>🏔️</div>
       <div style={{fontSize:11,letterSpacing:3,color:"#e8ff6b",fontWeight:700,marginBottom:4}}>BACKCOUNTRY FIT</div>
       <div style={{fontSize:28,fontWeight:900,marginBottom:8,textAlign:"center",color:"#f0ede6"}}>SETUP</div>
       <div style={{fontSize:13,color:"#555",fontFamily:"'Barlow',sans-serif",textAlign:"center",marginBottom:24,lineHeight:1.5}}>Enter your Anthropic API key to enable<br/>AI-powered photo food logging.</div>
       <input type="password" placeholder="sk-ant-..." value={key} onChange={e=>setKey(e.target.value)}
-        style={{width:"100%",maxWidth:360,background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:10,padding:"14px 16px",color:"#f0ede6",fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,marginBottom:12}}/>
+        style={{width:"100%",maxWidth:360,background:"#224270",border:"1px solid #2a2a2a",borderRadius:10,padding:"14px 16px",color:"#f0ede6",fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,marginBottom:12}}/>
       <button onClick={()=>{if(key.startsWith("sk-ant-")){localStorage.setItem("bcfit-apikey",key);onSave(key);}else alert("Please enter a valid Anthropic API key (starts with sk-ant-)")}}
-        style={{width:"100%",maxWidth:360,background:"#e8ff6b",color:"#0d0d0d",border:"none",padding:16,borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,cursor:"pointer",marginBottom:12}}>
+        style={{width:"100%",maxWidth:360,background:"#e8ff6b",color:"#162e4a",border:"none",padding:16,borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,cursor:"pointer",marginBottom:12}}>
         SAVE & CONTINUE
       </button>
       <button onClick={()=>onSave("")} style={{background:"none",border:"none",color:"#444",fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}}>SKIP — USE WITHOUT AI PHOTO</button>
@@ -328,6 +352,7 @@ function BackCountryFit() {
   const resetDay=useCallback(()=>setAppData(p=>({...p,completedSets:{},loggedMeals:{},water:0,photoMeals:[]})),[]);
   const addPhotoMeal=useCallback((meal)=>setAppData(p=>({...p,photoMeals:[...(p.photoMeals||[]),{...meal,id:Date.now(),time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}]})),[]);
   const removePhotoMeal=useCallback((id)=>setAppData(p=>({...p,photoMeals:p.photoMeals.filter(m=>m.id!==id)})),[]);
+  const update=useCallback((patch)=>setAppData(p=>({...p,...patch})),[]);
   const saveMacroTargets=useCallback((t)=>setAppData(p=>({...p,macroTargets:t})),[]);
   const logWeight=useCallback((w)=>{
     const entry={date:new Date().toLocaleDateString(),weight:parseFloat(w)};
@@ -346,31 +371,34 @@ function BackCountryFit() {
   ].reduce((acc,m)=>({cal:acc.cal+m.cal,p:acc.p+m.p,c:acc.c+m.c,f:acc.f+m.f}),{cal:0,p:0,c:0,f:0});
 
   if(!loaded) return (
-    <div style={{background:"#0d0d0d",height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,fontFamily:"'Barlow Condensed',sans-serif"}}>
+    <div style={{background:"#162e4a",height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,fontFamily:"'Barlow Condensed',sans-serif"}}>
       <div style={{fontSize:48}}>🏔️</div>
       <div style={{fontSize:11,letterSpacing:3,color:"#e8ff6b",fontWeight:700}}>BACKCOUNTRY FIT</div>
       <div style={{fontSize:13,color:"#444",fontWeight:600,letterSpacing:1}}>LOADING…</div>
     </div>
   );
 
-  const tabLabels={dashboard:"YOUR DASHBOARD",programs:"PROGRAMS",today:"TODAY'S WORKOUT",nutrition:"NUTRITION",progress:"PROGRESS"};
+  const tabLabels={dashboard:"YOUR DASHBOARD",programs:"PROGRAMS",today:"TODAY'S WORKOUT",nutrition:"NUTRITION",outdoor:"OUTDOOR",progress:"PROGRESS"};
 
   return (
-    <div style={{fontFamily:"'Barlow Condensed','Impact',sans-serif",background:"#0d0d0d",height:"100vh",color:"#f0ede6",maxWidth:480,margin:"0 auto",position:"relative",display:"flex",flexDirection:"column"}}>
+    <div style={{fontFamily:"'Barlow Condensed','Impact',sans-serif",background:"#162e4a",height:"100vh",color:"#f0ede6",maxWidth:480,margin:"0 auto",position:"relative",display:"flex",flexDirection:"column"}}>
       <style>{`
         .tab-btn{background:none;border:none;cursor:pointer;}
         .fade-in{animation:fadeUp 0.4s ease forwards;}
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
         .pulse{animation:pulse 2s infinite;}
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,255,107,0.4);}50%{box-shadow:0 0 0 8px rgba(232,255,107,0);}}
-        .set-btn{width:38px;height:38px;border-radius:50%;border:2px solid #333;background:#1a1a1a;color:#888;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;justify-content:center;}
-        .set-btn.done{background:#e8ff6b;border-color:#e8ff6b;color:#0d0d0d;}
+        .set-btn{width:38px;height:38px;border-radius:50%;border:2px solid #333;background:#224270;color:#888;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;justify-content:center;}
+        .set-btn.done{background:#e8ff6b;border-color:#e8ff6b;color:#162e4a;}
         .card-hover{transition:transform 0.2s;cursor:pointer;}
         .card-hover:active{transform:scale(0.97);}
-        .progress-bar{height:4px;background:#1e1e1e;border-radius:2px;overflow:hidden;}
+        .progress-bar{height:4px;background:#3a5f8a;border-radius:2px;overflow:hidden;}
         .progress-fill{height:100%;background:linear-gradient(90deg,#e8ff6b,#6bff9f);border-radius:2px;transition:width 0.5s ease;}
         .water-btn{background:none;border:none;cursor:pointer;transition:transform 0.15s;}
         .water-btn:active{transform:scale(0.88);}
+        
+        .confetti-piece{position:fixed;top:-10px;border-radius:2px;animation:confettiFall linear forwards;pointer-events:none;z-index:200;}
+        @keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}
         input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
         input{outline:none;}
       `}</style>
@@ -390,7 +418,7 @@ function BackCountryFit() {
             </div>
             <div style={{fontSize:28,fontWeight:900,lineHeight:1,letterSpacing:-0.5}}>{tabLabels[activeTab]}</div>
           </div>
-          <div style={{width:42,height:42,borderRadius:"50%",background:"linear-gradient(135deg,#2a3a1a,#1a2e1a)",border:"2px solid #e8ff6b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🧔</div>
+          <div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(135deg,#e8ff6b,#b8d43b)",border:"2px solid #e8ff6b",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="10" width="3" height="4" rx="1"/><rect x="19" y="10" width="3" height="4" rx="1"/><rect x="5" y="8" width="3" height="8" rx="1"/><rect x="16" y="8" width="3" height="8" rx="1"/><line x1="8" y1="12" x2="16" y2="12" strokeWidth="3"/></svg></div>
         </div>
       </div>
 
@@ -405,10 +433,10 @@ function BackCountryFit() {
       </div>
 
       {/* Bottom Nav */}
-      <div style={{background:"#111",borderTop:"1px solid #1e1e1e",display:"flex",paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
-        {[{id:"dashboard",icon:"⊞",label:"HOME"},{id:"programs",icon:"▤",label:"PROGRAMS"},{id:"today",icon:"⚡",label:"WORKOUT"},{id:"nutrition",icon:"🥦",label:"NUTRITION"},{id:"progress",icon:"◈",label:"PROGRESS"}].map(tab=>(
+      <div style={{background:"#1e4068",borderTop:"1px solid #3a5f8a",display:"flex",paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
+        {[{id:"dashboard",icon:"⊞",label:"HOME"},{id:"programs",icon:"▤",label:"PROGRAMS"},{id:"today",icon:"⚡",label:"WORKOUT"},{id:"outdoor",icon:"🗺",label:"OUTDOOR"},{id:"nutrition",icon:"🥦",label:"NUTRITION"},{id:"progress",icon:"◈",label:"PROGRESS"}].map(tab=>(
           <button key={tab.id} className="tab-btn" onClick={()=>setActiveTab(tab.id)}
-            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"8px 0",color:activeTab===tab.id?"#e8ff6b":"#444",transition:"color 0.2s"}}>
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"8px 0",color:activeTab===tab.id?"#e8ff6b":"#5a7898",transition:"color 0.2s"}}>
             <span style={{fontSize:18}}>{tab.icon}</span>
             <span style={{fontSize:8,fontWeight:700,letterSpacing:0.5}}>{tab.label}</span>
           </button>
@@ -422,22 +450,22 @@ function BackCountryFit() {
 function Dashboard({setActiveTab,appData,consumed,targets}) {
   return (
     <div className="fade-in">
-      <div style={{background:"linear-gradient(135deg,#1a2e1a 0%,#0f1f0f 100%)",border:"1px solid #2a3a1a",borderRadius:16,padding:20,marginBottom:16,position:"relative",overflow:"hidden"}}>
+      <div style={{background:"linear-gradient(135deg,#1a2e1a 0%,#162e4a 100%)",border:"1px solid #2a3a1a",borderRadius:16,padding:20,marginBottom:16,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-20,right:-20,fontSize:80,opacity:0.08}}>🏔️</div>
         <div style={{fontSize:12,color:"#8ba88b",letterSpacing:1,fontWeight:600,marginBottom:4}}>WEEK {appData.currentWeek} · DAY 4</div>
         <div style={{fontSize:26,fontWeight:900,lineHeight:1.1,marginBottom:8}}>UPPER BODY<br/>PULL DAY</div>
         <div style={{fontSize:13,color:"#8ba88b",fontFamily:"'Barlow',sans-serif",marginBottom:16}}>5 exercises · ~52 min estimated</div>
-        <button onClick={()=>setActiveTab("today")} className="pulse" style={{background:"#e8ff6b",color:"#0d0d0d",border:"none",padding:"12px 28px",borderRadius:8,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,letterSpacing:1,cursor:"pointer"}}>START WORKOUT →</button>
+        <button onClick={()=>setActiveTab("today")} className="pulse" style={{background:"#e8ff6b",color:"#162e4a",border:"none",padding:"12px 28px",borderRadius:8,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,letterSpacing:1,cursor:"pointer"}}>START WORKOUT →</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
         {[{label:"Workouts Done",value:appData.workoutsThisWeek+21,unit:""},{label:"Current Week",value:appData.currentWeek,unit:"of 12"},{label:"Avg Session",value:"52",unit:"min"},{label:"Streak",value:appData.streak,unit:"days"}].map(s=>(
-          <div key={s.label} style={{background:"#141414",border:"1px solid #1e1e1e",borderRadius:12,padding:"14px 16px"}}>
+          <div key={s.label} style={{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:12,padding:"14px 16px"}}>
             <div style={{fontSize:32,fontWeight:900,color:"#e8ff6b",lineHeight:1}}>{s.value}<span style={{fontSize:14,color:"#555",fontWeight:600}}> {s.unit}</span></div>
             <div style={{fontSize:10,color:"#555",letterSpacing:1,fontWeight:700,marginTop:2}}>{s.label}</div>
           </div>
         ))}
       </div>
-      <div style={{background:"#141414",border:"1px solid #1e1e1e",borderRadius:14,padding:16,marginBottom:16}}>
+      <div style={{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:14,padding:16,marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
           <div style={{fontSize:11,letterSpacing:2,color:"#555",fontWeight:700}}>TODAY'S NUTRITION</div>
           <div style={{fontSize:22,fontWeight:900,color:"#e8ff6b"}}>{consumed.cal}<span style={{fontSize:11,color:"#555"}}>/{targets.cal} kcal</span></div>
@@ -446,13 +474,13 @@ function Dashboard({setActiveTab,appData,consumed,targets}) {
           {[{label:"PROTEIN",val:consumed.p,max:targets.p,color:"#e8ff6b"},{label:"CARBS",val:consumed.c,max:targets.c,color:"#6bffb8"},{label:"FAT",val:consumed.f,max:targets.f,color:"#ff9f6b"}].map(m=>(
             <div key={m.label} style={{flex:1}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#555",fontWeight:700,letterSpacing:1,marginBottom:4}}><span>{m.label}</span><span>{m.val}g</span></div>
-              <div style={{height:4,background:"#1e1e1e",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(m.val/m.max*100,100)}%`,background:m.color,borderRadius:2,transition:"width 0.5s"}}/></div>
+              <div style={{height:4,background:"#3a5f8a",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(m.val/m.max*100,100)}%`,background:m.color,borderRadius:2,transition:"width 0.5s"}}/></div>
             </div>
           ))}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={{fontSize:14}}>💧</span>
-          <div style={{flex:1,height:4,background:"#1e1e1e",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${(appData.water/WATER_GOAL)*100}%`,background:"#6bbaff",borderRadius:2,transition:"width 0.4s"}}/></div>
+          <div style={{flex:1,height:4,background:"#3a5f8a",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${(appData.water/WATER_GOAL)*100}%`,background:"#6bbaff",borderRadius:2,transition:"width 0.4s"}}/></div>
           <span style={{fontSize:10,color:"#555",fontWeight:700}}>{appData.water}/{WATER_GOAL} cups</span>
         </div>
       </div>
@@ -462,14 +490,14 @@ function Dashboard({setActiveTab,appData,consumed,targets}) {
           {workoutDays.map(d=>(
             <div key={d.day} style={{flex:1,textAlign:"center"}}>
               <div style={{fontSize:9,color:"#555",fontWeight:700,letterSpacing:1,marginBottom:5}}>{d.day}</div>
-              <div style={{height:36,borderRadius:8,background:d.done?typeColors[d.type]:d.type==="rest"?"#111":"#141414",border:`1px solid ${d.done?typeColors[d.type]:"#1e1e1e"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:d.done?14:10,color:d.done?"#0d0d0d":typeColors[d.type],fontWeight:700}}>
+              <div style={{height:36,borderRadius:8,background:d.done?typeColors[d.type]:d.type==="rest"?"#111":"#1e3d65",border:`1px solid ${d.done?typeColors[d.type]:"#3a5f8a"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:d.done?14:10,color:d.done?"#162e4a":typeColors[d.type],fontWeight:700}}>
                 {d.done?"✓":d.type==="rest"?"—":"·"}
               </div>
             </div>
           ))}
         </div>
       </div>
-      <div style={{background:"#141414",border:"1px solid #1e1e1e",borderRadius:14,padding:16}}>
+      <div style={{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:14,padding:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
           <div><div style={{fontSize:11,letterSpacing:2,color:"#555",fontWeight:700}}>CURRENT PROGRAM</div><div style={{fontSize:20,fontWeight:800}}>Backcountry Build</div></div>
           <div style={{fontSize:28,fontWeight:900,color:"#e8ff6b"}}>50%</div>
@@ -493,19 +521,19 @@ function Programs({selectedProgram,setSelectedProgram}) {
       <div className="fade-in">
         <button onClick={()=>setSelectedProgram(null)} style={{background:"none",border:"none",color:"#e8ff6b",fontSize:13,fontWeight:700,letterSpacing:1,cursor:"pointer",marginBottom:16}}>← BACK</button>
         <div style={{fontSize:48,marginBottom:8}}>{p.img}</div>
-        <div style={{display:"inline-block",background:p.tagColor,color:"#0d0d0d",fontSize:9,fontWeight:800,letterSpacing:2,padding:"3px 8px",borderRadius:4,marginBottom:8}}>{p.tag}</div>
+        <div style={{display:"inline-block",background:p.tagColor,color:"#162e4a",fontSize:9,fontWeight:800,letterSpacing:2,padding:"3px 8px",borderRadius:4,marginBottom:8}}>{p.tag}</div>
         <div style={{fontSize:36,fontWeight:900,lineHeight:1,marginBottom:4}}>{p.title}</div>
         <div style={{fontSize:16,color:"#888",marginBottom:16,fontFamily:"'Barlow',sans-serif"}}>{p.subtitle}</div>
         <div style={{fontSize:14,color:"#aaa",fontFamily:"'Barlow',sans-serif",lineHeight:1.5,marginBottom:20}}>{p.desc}</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
           {[["Duration",`${p.weeks} Weeks`],["Level",p.level],["Sessions/Wk",p.sessions],["Goal",p.goal]].map(([k,v])=>(
-            <div key={k} style={{background:"#141414",border:"1px solid #1e1e1e",borderRadius:10,padding:"12px 14px"}}>
+            <div key={k} style={{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:10,padding:"12px 14px"}}>
               <div style={{fontSize:9,color:"#555",letterSpacing:1,fontWeight:700}}>{k}</div>
               <div style={{fontSize:18,fontWeight:800}}>{v}</div>
             </div>
           ))}
         </div>
-        <button style={{width:"100%",background:"#e8ff6b",color:"#0d0d0d",border:"none",padding:16,borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,letterSpacing:1,cursor:"pointer"}}>START THIS PROGRAM</button>
+        <button style={{width:"100%",background:"#e8ff6b",color:"#162e4a",border:"none",padding:16,borderRadius:10,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,letterSpacing:1,cursor:"pointer"}}>START THIS PROGRAM</button>
       </div>
     );
   }
@@ -514,9 +542,9 @@ function Programs({selectedProgram,setSelectedProgram}) {
       <div style={{fontSize:12,color:"#555",fontFamily:"'Barlow',sans-serif",marginBottom:16}}>Science-backed programs built for the backcountry lifestyle.</div>
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
         {programs.map(p=>(
-          <div key={p.id} className="card-hover" onClick={()=>setSelectedProgram(p.id)} style={{background:`linear-gradient(135deg,${p.color} 0%,#111 100%)`,border:"1px solid #1e1e1e",borderRadius:16,padding:18,position:"relative",overflow:"hidden"}}>
+          <div key={p.id} className="card-hover" onClick={()=>setSelectedProgram(p.id)} style={{background:`linear-gradient(135deg,${p.color} 0%,#111 100%)`,border:"1px solid #3a5f8a",borderRadius:16,padding:18,position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:-10,right:10,fontSize:60,opacity:0.15}}>{p.img}</div>
-            <div style={{display:"inline-block",background:p.tagColor,color:"#0d0d0d",fontSize:9,fontWeight:800,letterSpacing:2,padding:"3px 8px",borderRadius:4,marginBottom:8}}>{p.tag}</div>
+            <div style={{display:"inline-block",background:p.tagColor,color:"#162e4a",fontSize:9,fontWeight:800,letterSpacing:2,padding:"3px 8px",borderRadius:4,marginBottom:8}}>{p.tag}</div>
             <div style={{fontSize:26,fontWeight:900,lineHeight:1}}>{p.title}</div>
             <div style={{fontSize:13,color:"#777",marginBottom:10}}>{p.subtitle}</div>
             <div style={{display:"flex",gap:16,fontSize:11,color:"#888",fontWeight:700}}><span>{p.weeks} WKS</span><span>{p.sessions}×/WEEK</span><span style={{textTransform:"uppercase"}}>{p.level}</span></div>
@@ -533,8 +561,15 @@ function TodayWorkout({completedSets,toggleSet,resetDay,setShowTimer}) {
   const totalSets=todayExercises.reduce((a,e)=>a+parseInt(e.sets),0);
   const doneSets=Object.values(completedSets).filter(Boolean).length;
   const pct=Math.round((doneSets/totalSets)*100);
+  const [showConfetti,setShowConfetti]=useState(false);
+  const prevPctRef=React.useRef(pct);
+  React.useEffect(()=>{
+    if(pct===100&&prevPctRef.current!==100){setShowConfetti(true);setTimeout(()=>setShowConfetti(false),4500);}
+    prevPctRef.current=pct;
+  },[pct]);
   return (
     <div className="fade-in">
+      {showConfetti&&React.createElement(Confetti,null)}
       <div style={{marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={{fontSize:12,color:"#555",letterSpacing:1,fontWeight:700}}>WORKOUT PROGRESS</div>
@@ -555,7 +590,7 @@ function TodayWorkout({completedSets,toggleSet,resetDay,setShowTimer}) {
         {todayExercises.map((ex,exIdx)=>{
           const exDone=Array.from({length:parseInt(ex.sets)}).every((_,si)=>completedSets[`${exIdx}-${si}`]);
           return (
-            <div key={exIdx} style={{background:exDone?"#0f1a0f":"#141414",border:`1px solid ${exDone?"#1e3e1e":"#1e1e1e"}`,borderRadius:14,padding:16,transition:"all 0.3s"}}>
+            <div key={exIdx} style={{background:exDone?"#0f1a0f":"#1e3d65",border:`1px solid ${exDone?"#1e3e1e":"#3a5f8a"}`,borderRadius:14,padding:16,transition:"all 0.3s"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                 <div><div style={{fontSize:18,fontWeight:800,lineHeight:1}}>{ex.name}</div><div style={{fontSize:10,color:"#666",letterSpacing:1,fontWeight:700,marginTop:2}}>{ex.muscle}</div></div>
                 <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:700,color:"#e8ff6b"}}>{ex.sets} × {ex.reps}</div><div style={{fontSize:10,color:"#555",letterSpacing:1,fontWeight:700}}>RIR {ex.rir}</div></div>
@@ -572,10 +607,10 @@ function TodayWorkout({completedSets,toggleSet,resetDay,setShowTimer}) {
         })}
       </div>
       {pct===100&&(
-        <div style={{marginTop:16,background:"linear-gradient(135deg,#1a2e1a,#0f1f0f)",border:"1px solid #2a4a2a",borderRadius:14,padding:20,textAlign:"center"}}>
-          <div style={{fontSize:36,marginBottom:8}}>🎉</div>
-          <div style={{fontSize:24,fontWeight:900,color:"#e8ff6b"}}>WORKOUT COMPLETE</div>
-          <div style={{fontSize:13,color:"#6b9b6b",fontFamily:"'Barlow',sans-serif",marginTop:4}}>Solid work. Progress saved automatically.</div>
+        <div style={{marginTop:16,background:"linear-gradient(135deg,#1e2e18,#141e10)",border:"1px solid #2a4828",borderRadius:14,padding:24,textAlign:"center"}}>
+          <div style={{fontSize:48,marginBottom:8}}>🏆</div>
+          <div style={{fontSize:28,fontWeight:900,color:"#e8ff6b",letterSpacing:1}}>WORKOUT COMPLETE</div>
+          <div style={{fontSize:13,color:"#6b9b6b",fontFamily:"'Barlow',sans-serif",marginTop:6}}>Solid work, Dad. Progress saved automatically.</div>
         </div>
       )}
     </div>
@@ -618,12 +653,12 @@ function Nutrition({consumed,loggedMeals,toggleMeal,water,setWater,targets,setSh
       </div>
       <div style={{display:"flex",gap:6,marginBottom:16}}>
         {[["macros","MACROS"],["meals","MEAL PLAN"],["water","HYDRATION"]].map(([id,label])=>(
-          <button key={id} onClick={()=>setActiveSection(id)} style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:800,letterSpacing:1,background:activeSection===id?"#e8ff6b":"#141414",color:activeSection===id?"#0d0d0d":"#555",transition:"all 0.2s"}}>{label}</button>
+          <button key={id} onClick={()=>setActiveSection(id)} style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:800,letterSpacing:1,background:activeSection===id?"#e8ff6b":"#1e3d65",color:activeSection===id?"#162e4a":"#555",transition:"all 0.2s"}}>{label}</button>
         ))}
       </div>
       {activeSection==="macros"&&(
         <div>
-          <button onClick={()=>setShowMacroEditor(true)} style={{width:"100%",background:"#141414",border:"1px solid #2a4a2a",borderRadius:10,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif"}}>
+          <button onClick={()=>setShowMacroEditor(true)} style={{width:"100%",background:"#1e3d65",border:"1px solid #2a4a2a",borderRadius:10,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif"}}>
             <div style={{textAlign:"left"}}><div style={{fontSize:14,fontWeight:800,color:"#f0ede6"}}>Customize Targets</div><div style={{fontSize:10,color:"#555"}}>{targets.cal} kcal · {targets.p}g P · {targets.c}g C · {targets.f}g F</div></div>
             <div style={{fontSize:18,color:"#e8ff6b"}}>✎</div>
           </button>
@@ -632,12 +667,12 @@ function Nutrition({consumed,loggedMeals,toggleMeal,water,setWater,targets,setSh
             <div style={{fontSize:11,color:"#6b9b6b",fontFamily:"'Barlow',sans-serif",lineHeight:1.5}}><strong style={{color:"#8abb8a"}}>Science Note:</strong> Targets set for muscle-building at ~0.8g protein/lb bodyweight with a moderate ~300 kcal surplus.</div>
           </div>
           {[{label:"Protein",val:consumed.p,max:targets.p,color:"#e8ff6b",note:"Muscle repair & growth"},{label:"Carbohydrates",val:consumed.c,max:targets.c,color:"#6bffb8",note:"Primary fuel source"},{label:"Fat",val:consumed.f,max:targets.f,color:"#ff9f6b",note:"Hormones & absorption"}].map(m=>(
-            <div key={m.label} style={{background:"#141414",border:"1px solid #1e1e1e",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
+            <div key={m.label} style={{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                 <div><div style={{fontSize:18,fontWeight:800}}>{m.label}</div><div style={{fontSize:10,color:"#555",fontWeight:700,letterSpacing:1}}>{m.note}</div></div>
                 <div style={{textAlign:"right"}}><div style={{fontSize:22,fontWeight:900,color:m.color}}>{m.val}g</div><div style={{fontSize:10,color:"#555"}}>of {m.max}g</div></div>
               </div>
-              <div style={{height:6,background:"#1e1e1e",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(m.val/m.max*100,100)}%`,background:m.color,borderRadius:3,transition:"width 0.5s"}}/></div>
+              <div style={{height:6,background:"#3a5f8a",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(m.val/m.max*100,100)}%`,background:m.color,borderRadius:3,transition:"width 0.5s"}}/></div>
               <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"#444",fontWeight:700}}><span>{Math.round(m.val/m.max*100)}% of target</span><span>{m.max-m.val}g left</span></div>
             </div>
           ))}
@@ -654,7 +689,7 @@ function Nutrition({consumed,loggedMeals,toggleMeal,water,setWater,targets,setSh
             <div style={{marginBottom:14}}>
               <div style={{fontSize:10,color:"#555",letterSpacing:2,fontWeight:700,marginBottom:8}}>AI SCANNED MEALS</div>
               {photoMeals.map(m=>(
-                <div key={m.id} style={{background:"#0f1a2e",border:"1px solid #1a2a3a",borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div key={m.id} style={{background:"#162e4a",border:"1px solid #1a2a3a",borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div><div style={{fontSize:15,fontWeight:800}}>{m.name}</div><div style={{fontSize:10,color:"#555",marginTop:2}}>{m.time} · <span style={{color:"#e8ff6b"}}>{m.cal} kcal</span> · P{m.p}g C{m.c}g F{m.f}g</div></div>
                   <button onClick={()=>removePhotoMeal(m.id)} style={{background:"none",border:"none",color:"#ff6b6b",fontSize:16,cursor:"pointer",padding:"4px 8px"}}>✕</button>
                 </div>
@@ -664,9 +699,9 @@ function Nutrition({consumed,loggedMeals,toggleMeal,water,setWater,targets,setSh
           <div style={{fontSize:10,color:"#555",letterSpacing:2,fontWeight:700,marginBottom:8}}>MEAL PLAN</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {mealPlan.map((meal,i)=>(
-              <div key={i} className="card-hover" onClick={()=>toggleMeal(i)} style={{background:loggedMeals[i]?"#0f1a0f":"#141414",border:`1px solid ${loggedMeals[i]?"#2a4a2a":"#1e1e1e"}`,borderRadius:14,padding:14,transition:"all 0.25s"}}>
+              <div key={i} className="card-hover" onClick={()=>toggleMeal(i)} style={{background:loggedMeals[i]?"#0f1a0f":"#1e3d65",border:`1px solid ${loggedMeals[i]?"#2a4a2a":"#3a5f8a"}`,borderRadius:14,padding:14,transition:"all 0.25s"}}>
                 <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                  <div style={{width:40,height:40,borderRadius:10,background:loggedMeals[i]?"#1a3a1a":"#1a1a1a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{loggedMeals[i]?"✓":meal.icon}</div>
+                  <div style={{width:40,height:40,borderRadius:10,background:loggedMeals[i]?"#1a3a1a":"#224270",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{loggedMeals[i]?"✓":meal.icon}</div>
                   <div style={{flex:1}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                       <div><div style={{fontSize:16,fontWeight:800,lineHeight:1}}>{meal.meal}</div><div style={{fontSize:10,color:"#555",fontWeight:700,letterSpacing:1,marginBottom:6}}>{meal.time}</div></div>
@@ -687,7 +722,7 @@ function Nutrition({consumed,loggedMeals,toggleMeal,water,setWater,targets,setSh
       )}
       {activeSection==="water"&&(
         <div>
-          <div style={{background:"linear-gradient(135deg,#0f1a2e,#0a1020)",border:"1px solid #1a2a3a",borderRadius:16,padding:24,marginBottom:16,textAlign:"center"}}>
+          <div style={{background:"linear-gradient(135deg,#162e4a,#0a1020)",border:"1px solid #1a2a3a",borderRadius:16,padding:24,marginBottom:16,textAlign:"center"}}>
             <div style={{fontSize:64,marginBottom:8}}>💧</div>
             <div style={{fontSize:56,fontWeight:900,lineHeight:1,color:"#6bbaff"}}>{water}</div>
             <div style={{fontSize:14,color:"#4a7a9b",fontWeight:700,marginBottom:4}}>of {WATER_GOAL} cups today</div>
@@ -699,11 +734,11 @@ function Nutrition({consumed,loggedMeals,toggleMeal,water,setWater,targets,setSh
               <button className="water-btn" onClick={()=>setWater(w=>Math.min(WATER_GOAL+4,w+1))} style={{width:52,height:52,borderRadius:"50%",background:"#1a3a5a",border:"2px solid #2a5a8a",color:"#6bbaff",fontSize:24,fontWeight:900,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center"}}>+</button>
             </div>
           </div>
-          <div style={{background:"#141414",border:"1px solid #1e1e1e",borderRadius:14,padding:16,marginBottom:14}}>
+          <div style={{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:14,padding:16,marginBottom:14}}>
             <div style={{fontSize:11,letterSpacing:2,color:"#555",fontWeight:700,marginBottom:12}}>CUPS LOGGED</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
               {Array.from({length:WATER_GOAL}).map((_,i)=>(
-                <button key={i} className="water-btn" onClick={()=>setWater(i+1)} style={{width:40,height:40,borderRadius:8,background:i<water?"#1a3a5a":"#1a1a1a",border:`2px solid ${i<water?"#6bbaff":"#2a2a2a"}`,fontSize:18,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}>
+                <button key={i} className="water-btn" onClick={()=>setWater(i+1)} style={{width:40,height:40,borderRadius:8,background:i<water?"#1a3a5a":"#224270",border:`2px solid ${i<water?"#6bbaff":"#2a2a2a"}`,fontSize:18,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}>
                   {i<water?"💧":"○"}
                 </button>
               ))}
@@ -712,7 +747,7 @@ function Nutrition({consumed,loggedMeals,toggleMeal,water,setWater,targets,setSh
           <div style={{background:"#0f141a",border:"1px solid #1a2028",borderRadius:12,padding:"12px 14px"}}>
             <div style={{fontSize:11,letterSpacing:2,color:"#555",fontWeight:700,marginBottom:10}}>HYDRATION TIPS</div>
             {[{tip:"Drink 1–2 cups before each workout",icon:"⚡"},{tip:"Aim for pale yellow urine — the best hydration indicator",icon:"🔬"},{tip:"Add electrolytes on heavy sweat days (quad rides, skidoo)",icon:"🏔️"}].map((t,i)=>(
-              <div key={i} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:i<2?"1px solid #1a1a1a":"none"}}>
+              <div key={i} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:i<2?"1px solid #224270":"none"}}>
                 <span style={{fontSize:14}}>{t.icon}</span>
                 <div style={{fontSize:11,color:"#6b8a9b",fontFamily:"'Barlow',sans-serif",lineHeight:1.4}}>{t.tip}</div>
               </div>
@@ -725,6 +760,274 @@ function Nutrition({consumed,loggedMeals,toggleMeal,water,setWater,targets,setSh
 }
 
 // ── Progress ───────────────────────────────────────────────────────────────────
+
+// ── Outdoor ─────────────────────────────────────────────────────────────────
+function Outdoor({appData,update}) {
+  const [section,setSection]=useState("track");
+  const [trackState,setTrackState]=useState("idle");
+  const [activityType,setActivityType]=useState("run");
+  const [elapsed,setElapsed]=useState(0);
+  const [route,setRoute]=useState([]);
+  const [distance,setDistance]=useState(0);
+  const [currentPos,setCurrentPos]=useState(null);
+  const [gpsError,setGpsError]=useState("");
+  const [saveName,setSaveName]=useState("");
+  const [showSave,setShowSave]=useState(false);
+  const [stravaClientId,setStravaClientId]=useState(appData.stravaClientId||"");
+  const [stravaSecret,setStravaSecret]=useState("");
+  const intervalRef=React.useRef(null);
+  const watchRef=React.useRef(null);
+  const mapRef=React.useRef(null);
+  const leafletMapRef=React.useRef(null);
+  const polylineRef=React.useRef(null);
+  const markerRef=React.useRef(null);
+  const activities=appData.activities||[];
+
+  const haversine=(a,b)=>{
+    const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lng-a.lng)*Math.PI/180;
+    const x=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+  };
+  const fmt=s=>`${String(Math.floor(s/3600)).padStart(2,"0")}:${String(Math.floor((s%3600)/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+  const fmtDist=d=>d>=1?`${d.toFixed(2)} km`:`${Math.round(d*1000)} m`;
+  const pace=distance>0&&elapsed>0?(elapsed/60)/distance:0;
+
+  React.useEffect(()=>{
+    if(section!=="track"||leafletMapRef.current) return;
+    const timer=setTimeout(()=>{
+      if(!mapRef.current||leafletMapRef.current) return;
+      if(!window.L){setTimeout(()=>initMap(),800);}else{initMap();}
+    },300);
+    return()=>clearTimeout(timer);
+  },[section]);
+
+  React.useEffect(()=>{
+    return()=>{clearInterval(intervalRef.current);if(watchRef.current)navigator.geolocation.clearWatch(watchRef.current);};
+  },[]);
+
+  const initMap=()=>{
+    if(!mapRef.current||leafletMapRef.current||!window.L) return;
+    const center=currentPos?[currentPos.lat,currentPos.lng]:[47.5615,-52.7126];
+    const map=window.L.map(mapRef.current,{zoomControl:false,attributionControl:false}).setView(center,14);
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    window.L.control.zoom({position:"bottomright"}).addTo(map);
+    const poly=window.L.polyline([],{color:"#e8ff6b",weight:5,opacity:0.9}).addTo(map);
+    const icon=window.L.divIcon({html:`<div style="width:14px;height:14px;background:#e8ff6b;border:3px solid #162e4a;border-radius:50%;box-shadow:0 0 10px #e8ff6b99;"></div>`,iconSize:[14,14],iconAnchor:[7,7],className:""});
+    const marker=window.L.marker(center,{icon}).addTo(map);
+    leafletMapRef.current=map; polylineRef.current=poly; markerRef.current=marker;
+  };
+
+  React.useEffect(()=>{
+    if(!leafletMapRef.current||route.length===0) return;
+    const ll=route.map(p=>[p.lat,p.lng]);
+    polylineRef.current?.setLatLngs(ll);
+    const last=route[route.length-1];
+    markerRef.current?.setLatLng([last.lat,last.lng]);
+    leafletMapRef.current.setView([last.lat,last.lng],leafletMapRef.current.getZoom());
+  },[route]);
+
+  const startTracking=()=>{
+    setGpsError("");
+    if(!navigator.geolocation){setGpsError("GPS not available on this device.");return;}
+    setTrackState("active"); setElapsed(0); setRoute([]); setDistance(0);
+    intervalRef.current=setInterval(()=>setElapsed(e=>e+1),1000);
+    watchRef.current=navigator.geolocation.watchPosition(
+      pos=>{
+        const point={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        setCurrentPos(point);
+        setRoute(prev=>{
+          if(prev.length>0) setDistance(d=>d+haversine(prev[prev.length-1],point));
+          return[...prev,point];
+        });
+      },
+      err=>setGpsError("GPS error: "+err.message),
+      {enableHighAccuracy:true,maximumAge:2000,timeout:10000}
+    );
+  };
+
+  const pauseTracking=()=>{
+    setTrackState("paused"); clearInterval(intervalRef.current);
+    navigator.geolocation.clearWatch(watchRef.current);
+  };
+
+  const resumeTracking=()=>{
+    setTrackState("active");
+    intervalRef.current=setInterval(()=>setElapsed(e=>e+1),1000);
+    watchRef.current=navigator.geolocation.watchPosition(
+      pos=>{const point={lat:pos.coords.latitude,lng:pos.coords.longitude};setCurrentPos(point);setRoute(prev=>{if(prev.length>0)setDistance(d=>d+haversine(prev[prev.length-1],point));return[...prev,point];});},
+      err=>setGpsError("GPS error: "+err.message),{enableHighAccuracy:true,maximumAge:2000,timeout:10000}
+    );
+  };
+
+  const stopTracking=()=>{
+    clearInterval(intervalRef.current); navigator.geolocation.clearWatch(watchRef.current);
+    setTrackState("done"); setShowSave(true);
+    setSaveName(`${activityType==="run"?"Run":activityType==="hike"?"Hike":"Ride"} — ${new Date().toLocaleDateString()}`);
+  };
+
+  const saveActivity=()=>{
+    const a={id:Date.now(),type:activityType,name:saveName,date:new Date().toLocaleDateString(),distance:parseFloat(distance.toFixed(3)),duration:elapsed,route};
+    update({activities:[a,...activities].slice(0,50)});
+    setShowSave(false); setTrackState("idle"); setRoute([]); setDistance(0); setElapsed(0);
+    leafletMapRef.current=null;
+  };
+
+  const deleteActivity=(id)=>update({activities:activities.filter(a=>a.id!==id)});
+  const typeIcon={run:"🏃",hike:"🥾",ride:"🚵"};
+  const typeLabel={run:"RUN",hike:"HIKE",ride:"RIDE"};
+
+  return React.createElement("div",{className:"fade-in",style:{paddingBottom:20}},
+    // Section tabs
+    React.createElement("div",{style:{display:"flex",gap:6,marginBottom:16,padding:"0 20px"}},
+      [["track","🗺 TRACK"],["history","📋 HISTORY"],["strava","🟠 STRAVA"]].map(([id,label])=>
+        React.createElement("button",{key:id,onClick:()=>{setSection(id);if(id==="track")leafletMapRef.current=null;},
+          style:{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:800,letterSpacing:1,
+            background:section===id?"#e8ff6b":"#1e3d65",color:section===id?"#162e4a":"#7a90b0",transition:"all 0.2s"}},label)
+    ),
+
+    // TRACK section
+    section==="track"&&React.createElement("div",null,
+      trackState==="idle"&&React.createElement("div",{style:{display:"flex",gap:8,marginBottom:12,padding:"0 20px"}},
+        ["run","hike","ride"].map(t=>React.createElement("button",{key:t,onClick:()=>setActivityType(t),
+          style:{flex:1,padding:"10px 4px",borderRadius:10,border:`2px solid ${activityType===t?"#e8ff6b":"#3a5f8a"}`,background:activityType===t?"#1a3458":"#1e3d65",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:800,color:activityType===t?"#e8ff6b":"#7a90b0",transition:"all 0.2s"}},
+          `${typeIcon[t]} ${typeLabel[t]}`))
+      ),
+      React.createElement("div",{ref:mapRef,style:{width:"100%",height:280,background:"#1a1810"}}),
+      trackState!=="idle"&&React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,margin:"12px 20px 0"}},
+        [["TIME",fmt(elapsed)],["DIST",fmtDist(distance)],["PACE",pace>0?`${Math.floor(pace)}:${String(Math.round((pace%1)*60)).padStart(2,"0")}/km`:"--"]].map(([l,v])=>
+          React.createElement("div",{key:l,style:{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:10,padding:"10px 8px",textAlign:"center"}},
+            React.createElement("div",{style:{fontSize:18,fontWeight:900,color:"#e8ff6b",lineHeight:1}},v),
+            React.createElement("div",{style:{fontSize:9,color:"#7a90b0",fontWeight:700,letterSpacing:1,marginTop:2}},l)
+          ))
+      ),
+      gpsError&&React.createElement("div",{style:{margin:"10px 20px 0",fontSize:11,color:"#ff9f6b",fontFamily:"'Barlow',sans-serif"}},"⚠ "+gpsError),
+      React.createElement("div",{style:{padding:"12px 20px 0"}},
+        trackState==="idle"&&React.createElement("button",{onClick:startTracking,className:"pulse",style:{width:"100%",background:"#e8ff6b",color:"#162e4a",border:"none",padding:16,borderRadius:12,fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:900,cursor:"pointer",letterSpacing:1}},`START ${typeLabel[activityType]} →`),
+        trackState==="active"&&React.createElement("div",{style:{display:"flex",gap:10}},
+          React.createElement("button",{onClick:pauseTracking,style:{flex:1,background:"#3a5f8a",border:"1px solid #3e3628",padding:14,borderRadius:12,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,color:"#e8ff6b",cursor:"pointer"}},"⏸ PAUSE"),
+          React.createElement("button",{onClick:stopTracking,style:{flex:1,background:"#3e1818",border:"1px solid #5e2828",padding:14,borderRadius:12,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,color:"#ff9f6b",cursor:"pointer"}},"⏹ FINISH")
+        ),
+        trackState==="paused"&&React.createElement("div",{style:{display:"flex",gap:10}},
+          React.createElement("button",{onClick:resumeTracking,style:{flex:2,background:"#1a3458",border:"1px solid #2e4828",padding:14,borderRadius:12,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,color:"#6bffb8",cursor:"pointer"}},"▶ RESUME"),
+          React.createElement("button",{onClick:stopTracking,style:{flex:1,background:"#3e1818",border:"1px solid #5e2828",padding:14,borderRadius:12,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,color:"#ff9f6b",cursor:"pointer"}},"⏹ END")
+        )
+      ),
+      showSave&&React.createElement("div",{style:{margin:"12px 20px 0",background:"#1a3458",border:"1px solid #2a4828",borderRadius:14,padding:16}},
+        React.createElement("div",{style:{fontSize:13,letterSpacing:2,color:"#6b9b6b",fontWeight:700,marginBottom:10}},"SAVE ACTIVITY"),
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}},
+          [["DISTANCE",fmtDist(distance)],["TIME",fmt(elapsed)],["TYPE",typeLabel[activityType]]].map(([l,v])=>
+            React.createElement("div",{key:l,style:{textAlign:"center"}},
+              React.createElement("div",{style:{fontSize:16,fontWeight:900,color:"#e8ff6b"}},v),
+              React.createElement("div",{style:{fontSize:9,color:"#7a90b0",fontWeight:700}},l)
+            ))
+        ),
+        React.createElement("input",{value:saveName,onChange:e=>setSaveName(e.target.value),style:{width:"100%",background:"#162e4a",border:"1px solid #3a5f8a",borderRadius:8,padding:"10px 12px",color:"#f0ede6",fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,marginBottom:10}}),
+        React.createElement("div",{style:{display:"flex",gap:8}},
+          React.createElement("button",{onClick:saveActivity,style:{flex:2,background:"#e8ff6b",color:"#162e4a",border:"none",padding:12,borderRadius:8,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,cursor:"pointer"}},"SAVE ✓"),
+          React.createElement("button",{onClick:()=>{setShowSave(false);setTrackState("idle");leafletMapRef.current=null;},style:{flex:1,background:"none",border:"1px solid #3a5f8a",padding:12,borderRadius:8,fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:"#7a90b0",cursor:"pointer"}},"DISCARD")
+        )
+      )
+    ),
+
+    // HISTORY section
+    section==="history"&&React.createElement("div",{style:{padding:"0 20px"}},
+      activities.length===0
+        ? React.createElement("div",{style:{textAlign:"center",padding:"40px 20px"}},
+            React.createElement("div",{style:{fontSize:48,marginBottom:12}},"🥾"),
+            React.createElement("div",{style:{fontSize:18,fontWeight:800,marginBottom:6}},"NO ACTIVITIES YET"),
+            React.createElement("div",{style:{fontSize:12,color:"#7a90b0",fontFamily:"'Barlow',sans-serif"}},"Start a run, hike, or ride on the Track tab.")
+          )
+        : React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+            React.createElement("div",{style:{fontSize:11,letterSpacing:2,color:"#7a90b0",fontWeight:700,marginBottom:4}},activities.length+" ACTIVITIES LOGGED"),
+            activities.map(a=>React.createElement("div",{key:a.id,style:{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:14,padding:16}},
+              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}},
+                React.createElement("div",{style:{display:"flex",gap:10,alignItems:"center"}},
+                  React.createElement("div",{style:{fontSize:28}},typeIcon[a.type]),
+                  React.createElement("div",null,
+                    React.createElement("div",{style:{fontSize:16,fontWeight:800,lineHeight:1}},a.name),
+                    React.createElement("div",{style:{fontSize:10,color:"#7a90b0",fontWeight:700,letterSpacing:1,marginTop:2}},a.date)
+                  )
+                ),
+                React.createElement("button",{onClick:()=>deleteActivity(a.id),style:{background:"none",border:"none",color:"#5a3a3a",fontSize:16,cursor:"pointer",padding:"2px 6px"}},"✕")
+              ),
+              React.createElement("div",{style:{display:"flex",gap:14}},
+                [["DIST",fmtDist(a.distance)],["TIME",fmt(a.duration)],["PACE",a.duration>0&&a.distance>0?`${Math.floor((a.duration/60)/a.distance)}:${String(Math.round(((a.duration/60)/a.distance%1)*60)).padStart(2,"0")}/km`:"--"]].map(([l,v])=>
+                  React.createElement("div",{key:l},
+                    React.createElement("div",{style:{fontSize:18,fontWeight:900,color:"#e8ff6b"}},v),
+                    React.createElement("div",{style:{fontSize:9,color:"#7a90b0",fontWeight:700,letterSpacing:1}},l)
+                  ))
+              )
+            ))
+          )
+    ),
+
+    // STRAVA section
+    section==="strava"&&React.createElement("div",{style:{padding:"0 20px"}},
+      React.createElement("div",{style:{background:appData.stravaConnected?"#1a2e18":"#1e3d65",border:`1px solid ${appData.stravaConnected?"#2a4828":"#2e5585"}`,borderRadius:14,padding:18,marginBottom:16}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:appData.stravaConnected?0:12}},
+          React.createElement("div",{style:{fontSize:36}},"🟠"),
+          React.createElement("div",null,
+            React.createElement("div",{style:{fontSize:20,fontWeight:900}},"Strava"),
+            React.createElement("div",{style:{fontSize:11,color:appData.stravaConnected?"#6bffb8":"#ff9f6b",fontWeight:700}},appData.stravaConnected?"✓ CONNECTED":"NOT CONNECTED")
+          )
+        ),
+        !appData.stravaConnected&&React.createElement("div",{style:{fontSize:12,color:"#8a9ab8",fontFamily:"'Barlow',sans-serif",lineHeight:1.6}},"Connect Strava to import your activities and export your workouts.")
+      ),
+      !appData.stravaConnected
+        ? React.createElement("div",null,
+            React.createElement("div",{style:{background:"#1a1e28",border:"1px solid #2a2e38",borderRadius:14,padding:16,marginBottom:16}},
+              React.createElement("div",{style:{fontSize:11,letterSpacing:2,color:"#6bbaff",fontWeight:700,marginBottom:12}},"SETUP STEPS"),
+              [["1","Go to developers.strava.com and sign in"],["2","Click 'Create & Manage Your App'"],["3","Set Authorization Callback to your GitHub Pages URL"],["4","Copy your Client ID and Client Secret"],["5","Paste them below and tap Connect"]].map(s=>
+                React.createElement("div",{key:s[0],style:{display:"flex",gap:12,marginBottom:10,alignItems:"flex-start"}},
+                  React.createElement("div",{style:{width:22,height:22,borderRadius:"50%",background:"#2a3a4a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#6bbaff",flexShrink:0}},s[0]),
+                  React.createElement("div",{style:{fontSize:12,color:"#8a9ab8",fontFamily:"'Barlow',sans-serif",lineHeight:1.5,paddingTop:2}},s[1])
+                ))
+            ),
+            React.createElement("div",{style:{marginBottom:10}},
+              React.createElement("div",{style:{fontSize:10,color:"#7a90b0",fontWeight:700,letterSpacing:1,marginBottom:6}},"STRAVA CLIENT ID"),
+              React.createElement("input",{value:stravaClientId,onChange:e=>setStravaClientId(e.target.value),placeholder:"e.g. 123456",style:{width:"100%",background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:8,padding:"12px 14px",color:"#f0ede6",fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:700}})
+            ),
+            React.createElement("div",{style:{marginBottom:16}},
+              React.createElement("div",{style:{fontSize:10,color:"#7a90b0",fontWeight:700,letterSpacing:1,marginBottom:6}},"CLIENT SECRET"),
+              React.createElement("input",{type:"password",value:stravaSecret,onChange:e=>setStravaSecret(e.target.value),placeholder:"Your client secret",style:{width:"100%",background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:8,padding:"12px 14px",color:"#f0ede6",fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:700}})
+            ),
+            React.createElement("button",{
+              onClick:()=>{
+                if(!stravaClientId){alert("Enter your Strava Client ID first");return;}
+                update({stravaClientId});
+                sessionStorage.setItem("bcfit-strava-secret",stravaSecret);
+                const redirectUri=encodeURIComponent(window.location.href.split("?")[0]);
+                window.location.href=`https://www.strava.com/oauth/authorize?client_id=${stravaClientId}&response_type=code&redirect_uri=${redirectUri}&approval_prompt=auto&scope=activity:read_all,activity:write`;
+              },
+              style:{width:"100%",background:"#fc4c02",color:"#fff",border:"none",padding:16,borderRadius:12,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,letterSpacing:1,cursor:"pointer",marginBottom:10}
+            },"CONNECT TO STRAVA →"),
+            React.createElement("div",{style:{fontSize:10,color:"#5a7898",fontFamily:"'Barlow',sans-serif",textAlign:"center",lineHeight:1.5}},"You'll be redirected to Strava to authorize. Credentials stay on your device only.")
+          )
+        : React.createElement("div",null,
+            React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:10,marginBottom:20}},
+              React.createElement("button",{style:{background:"#1e3d65",border:"1px solid #fc4c0244",borderRadius:12,padding:16,display:"flex",alignItems:"center",gap:14,cursor:"pointer",width:"100%"}},
+                React.createElement("div",{style:{fontSize:28}},"⬇️"),
+                React.createElement("div",{style:{textAlign:"left"}},
+                  React.createElement("div",{style:{fontSize:16,fontWeight:800,color:"#f0ede6",fontFamily:"'Barlow Condensed',sans-serif"}},"Import from Strava"),
+                  React.createElement("div",{style:{fontSize:11,color:"#7a90b0",fontFamily:"'Barlow',sans-serif"}},"Pull your recent runs, hikes & rides")
+                ),
+                React.createElement("div",{style:{marginLeft:"auto",fontSize:16,color:"#fc4c02"}},"›")
+              ),
+              React.createElement("button",{style:{background:"#1e3d65",border:"1px solid #fc4c0244",borderRadius:12,padding:16,display:"flex",alignItems:"center",gap:14,cursor:"pointer",width:"100%"}},
+                React.createElement("div",{style:{fontSize:28}},"⬆️"),
+                React.createElement("div",{style:{textAlign:"left"}},
+                  React.createElement("div",{style:{fontSize:16,fontWeight:800,color:"#f0ede6",fontFamily:"'Barlow Condensed',sans-serif"}},"Export to Strava"),
+                  React.createElement("div",{style:{fontSize:11,color:"#7a90b0",fontFamily:"'Barlow',sans-serif"}},"Push tracked activities to your Strava profile")
+                ),
+                React.createElement("div",{style:{marginLeft:"auto",fontSize:16,color:"#fc4c02"}},"›")
+              )
+            ),
+            React.createElement("button",{onClick:()=>update({stravaConnected:false}),style:{width:"100%",background:"none",border:"1px solid #2e5585",borderRadius:10,padding:12,fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:"#7a90b0",cursor:"pointer"}},"DISCONNECT STRAVA")
+          )
+    )
+  );
+}
+
 function Progress({appData,logWeight}) {
   const [weightInput,setWeightInput]=useState("");
   const [logged,setLogged]=useState(false);
@@ -740,15 +1043,15 @@ function Progress({appData,logWeight}) {
   const chartMin=weightLog.length?Math.min(...weightLog.map(e=>e.weight))-5:150;
   return (
     <div className="fade-in">
-      <div style={{background:"#141414",border:"1px solid #1e1e1e",borderRadius:14,padding:16,marginBottom:16}}>
+      <div style={{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:14,padding:16,marginBottom:16}}>
         <div style={{fontSize:11,letterSpacing:2,color:"#555",fontWeight:700,marginBottom:12}}>LOG BODY WEIGHT</div>
         <div style={{display:"flex",gap:10,marginBottom:14}}>
           <div style={{flex:1,position:"relative"}}>
             <input type="number" placeholder="e.g. 185" value={weightInput} onChange={e=>setWeightInput(e.target.value)}
-              style={{width:"100%",background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:8,padding:"12px 50px 12px 14px",color:"#f0ede6",fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:800}}/>
+              style={{width:"100%",background:"#224270",border:"1px solid #2a2a2a",borderRadius:8,padding:"12px 50px 12px 14px",color:"#f0ede6",fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:800}}/>
             <span style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"#555",fontWeight:700}}>LBS</span>
           </div>
-          <button onClick={handleLog} style={{background:logged?"#1a3a1a":"#e8ff6b",color:logged?"#6bffb8":"#0d0d0d",border:"none",padding:"12px 20px",borderRadius:8,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,cursor:"pointer",transition:"all 0.3s",whiteSpace:"nowrap"}}>
+          <button onClick={handleLog} style={{background:logged?"#1a3a1a":"#e8ff6b",color:logged?"#6bffb8":"#162e4a",border:"none",padding:"12px 20px",borderRadius:8,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,cursor:"pointer",transition:"all 0.3s",whiteSpace:"nowrap"}}>
             {logged?"SAVED ✓":"LOG IT"}
           </button>
         </div>
@@ -782,7 +1085,7 @@ function Progress({appData,logWeight}) {
         <div style={{fontSize:11,letterSpacing:2,color:"#555",fontWeight:700,marginBottom:10}}>PERSONAL RECORDS</div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {[{lift:"Back Squat",weight:"225 lbs",date:"2 weeks ago",icon:"🏋️"},{lift:"Deadlift",weight:"275 lbs",date:"Last week",icon:"💪"},{lift:"Bench Press",weight:"185 lbs",date:"3 weeks ago",icon:"⚡"}].map(pr=>(
-            <div key={pr.lift} style={{background:"#141414",border:"1px solid #1e1e1e",borderRadius:12,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div key={pr.lift} style={{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:12,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{display:"flex",gap:10,alignItems:"center"}}>
                 <span style={{fontSize:20}}>{pr.icon}</span>
                 <div><div style={{fontSize:16,fontWeight:800}}>{pr.lift}</div><div style={{fontSize:10,color:"#555",letterSpacing:1,fontWeight:700}}>{pr.date}</div></div>
@@ -792,7 +1095,7 @@ function Progress({appData,logWeight}) {
           ))}
         </div>
       </div>
-      <div style={{background:"#141414",border:"1px solid #1e1e1e",borderRadius:14,padding:16,marginBottom:16}}>
+      <div style={{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:14,padding:16,marginBottom:16}}>
         <div style={{fontSize:11,letterSpacing:2,color:"#555",fontWeight:700,marginBottom:14}}>WEEKLY VOLUME (SETS)</div>
         <div style={{display:"flex",gap:6,alignItems:"flex-end",height:80}}>
           {weeklyData.map((val,i)=>(
@@ -803,14 +1106,14 @@ function Progress({appData,logWeight}) {
           ))}
         </div>
       </div>
-      <div style={{background:"#141414",border:"1px solid #1e1e1e",borderRadius:14,padding:16}}>
+      <div style={{background:"#1e3d65",border:"1px solid #3a5f8a",borderRadius:14,padding:16}}>
         <div style={{fontSize:11,letterSpacing:2,color:"#555",fontWeight:700,marginBottom:14}}>BODY METRICS</div>
         {[
           {label:"Body Weight",value:weightLog.length?`${weightLog[weightLog.length-1].weight} lbs`:"—",change:weightLog.length>1?`${(weightLog[weightLog.length-1].weight-weightLog[0].weight)>0?"+":""}${(weightLog[weightLog.length-1].weight-weightLog[0].weight).toFixed(1)} lbs`:"Log to track",up:weightLog.length>1&&weightLog[weightLog.length-1].weight>weightLog[0].weight},
           {label:"Body Fat %",value:"16.2%",change:"−0.8%",up:false},
           {label:"Lean Mass",value:"155 lbs",change:"+1.2 lbs",up:true}
         ].map(m=>(
-          <div key={m.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid #1a1a1a"}}>
+          <div key={m.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid #224270"}}>
             <div style={{fontSize:14,fontWeight:600}}>{m.label}</div>
             <div style={{textAlign:"right"}}>
               <div style={{fontSize:18,fontWeight:800}}>{m.value}</div>
