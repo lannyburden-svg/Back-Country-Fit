@@ -636,8 +636,8 @@ function Dashboard({ setActiveTab, appData, consumed, targets }) {
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, letterSpacing: 2, color: "#555", fontWeight: 700, marginBottom: 10 }}>THIS WEEK</div>
         <div style={{ display: "flex", gap: 6 }}>
-          {WEEK_TEMPLATE.map((d, di) => { const done = di < appData.workoutsThisWeek; return (
-            <div key={d.day} style={{ flex: 1, textAlign: "center" }}>
+          {WEEK_TEMPLATE.map((d, di) => { const done = di < appData.workoutsThisWeek; return (<React.Fragment key={d.day}>
+            <div style={{ flex: 1, textAlign: "center" }}>
               <div style={{ fontSize: 9, color: "#555", fontWeight: 700, letterSpacing: 1, marginBottom: 5 }}>{d.day}</div>
               <div style={{ height: 36, borderRadius: 8, background: done ? typeColors[d.type] : d.type === "rest" ? "#111" : "#141414", border: `1px solid ${done ? typeColors[d.type] : "#1e1e1e"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: done ? 14 : 10, color: done ? "#0d0d0d" : typeColors[d.type], fontWeight: 700 }}>
                 {done ? "✓" : d.type === "rest" ? "—" : "·"}
