@@ -306,6 +306,15 @@ function CloudSync({ appData, onClose, onLoad }) {
             )}
 
             <button onClick={() => setTab("setup")} style={{ background: "none", border: "1px solid #1a2a3a", borderRadius: 8, padding: "9px 0", width: "100%", color: "#4a7a9b", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 1, cursor: "pointer" }}>CHANGE CREDENTIALS</button>
+            <div style={{ marginTop: 24, borderTop: "1px solid #1a1a1a", paddingTop: 20 }}>
+              <div style={{ fontSize: 10, color: "#555", fontWeight: 700, letterSpacing: 2, marginBottom: 10 }}>DANGER ZONE</div>
+              <button onClick={() => {
+                if (window.confirm("Reset all app data to zero? This cannot be undone.")) {
+                  localStorage.removeItem("bcfit-data-v2");
+                  window.location.reload();
+                }
+              }} style={{ background: "none", border: "1px solid #4a1a1a", borderRadius: 8, padding: "9px 0", width: "100%", color: "#ff6b6b", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 1, cursor: "pointer" }}>RESET ALL APP DATA</button>
+            </div>
           </div>
         )}
 
