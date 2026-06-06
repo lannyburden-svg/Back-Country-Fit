@@ -33,11 +33,11 @@ const programs = [
   { id: 2, title: "Trail Ready", subtitle: "Cardio + Conditioning", weeks: 8, level: "Beginner", goal: "Fat Loss & Stamina", sessions: 3, tag: "GREAT FOR DADS", tagColor: "#6bbaff", img: "🌲", desc: "Short sessions, serious results. Built for busy dads who need to be fit enough to keep up with the kids.", color: "#1a1f2e" },
   { id: 3, title: "Peak Season", subtitle: "Power & Performance", weeks: 16, level: "Advanced", goal: "Peak Athleticism", sessions: 5, tag: "SCIENCE-BACKED", tagColor: "#ff9f6b", img: "⛰️", desc: "Peak output. Periodized programming designed to maximize strength, power, and backcountry readiness.", color: "#2e1a1a" },
 ];
-const workoutDays = [
-  { day: "MON", done: true, type: "strength" }, { day: "TUE", done: true, type: "strength" },
-  { day: "WED", done: false, type: "recovery" }, { day: "THU", done: false, type: "strength" },
-  { day: "FRI", done: false, type: "power" }, { day: "SAT", done: false, type: "cardio" },
-  { day: "SUN", done: false, type: "rest" },
+const WEEK_TEMPLATE = [
+  { day: "MON", type: "strength" }, { day: "TUE", type: "strength" },
+  { day: "WED", type: "recovery" }, { day: "THU", type: "strength" },
+  { day: "FRI", type: "power" }, { day: "SAT", type: "cardio" },
+  { day: "SUN", type: "rest" },
 ];
 const todayExercises = [
   { name: "Barbell Back Squat", sets: "4", reps: "6–8", rir: "2", muscle: "Quads" },
@@ -134,7 +134,7 @@ function MacroRing({ value, max, color, size = 80, stroke = 8, label, unit }) {
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1e1e1e" strokeWidth={stroke} />
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" style={{ transition: "stroke-dasharray 0.6s ease" }} />
-        <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
+        <text x=`${Math.round((appData.currentWeek/12)*100)}%` y=`${Math.round((appData.currentWeek/12)*100)}%` dominantBaseline="middle" textAnchor="middle"
           style={{ fill: "#f0ede6", fontSize: 15, fontWeight: 900, fontFamily: "'Barlow Condensed',sans-serif", transform: "rotate(90deg)", transformOrigin: "center" }}>
           {value}
         </text>
@@ -238,7 +238,7 @@ function CloudSync({ appData, onClose, onLoad }) {
                 { n:"4", t:"To restore on another device: enter same Bin ID + API key" },
               ].map(s => (
                 <div key={s.n} style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "flex-start" }}>
-                  <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#1a2e4a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#6bbaff", flexShrink: 0 }}>{s.n}</div>
+                  <div style={{ width: 20, height: 20, borderRadius: `${Math.round((appData.currentWeek/12)*100)}%`, background: "#1a2e4a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#6bbaff", flexShrink: 0 }}>{s.n}</div>
                   <div style={{ fontSize: 12, color: "#7a9ab8", fontFamily: "'Barlow',sans-serif", lineHeight: 1.5, paddingTop: 2 }}>{s.t}</div>
                 </div>
               ))}
@@ -358,7 +358,7 @@ function RestTimer({ onClose }) {
         <circle cx={65} cy={65} r={r} fill="none" stroke="#1e1e1e" strokeWidth={10} />
         <circle cx={65} cy={65} r={r} fill="none" stroke={seconds <= 10 ? "#ff6b6b" : "#e8ff6b"} strokeWidth={10}
           strokeDasharray={`${pct * circ} ${circ}`} strokeLinecap="round" style={{ transition: "stroke-dasharray 0.9s linear, stroke 0.3s" }} />
-        <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
+        <text x=`${Math.round((appData.currentWeek/12)*100)}%` y=`${Math.round((appData.currentWeek/12)*100)}%` dominantBaseline="middle" textAnchor="middle"
           style={{ fill: "#f0ede6", fontSize: 30, fontWeight: 900, fontFamily: "'Barlow Condensed',sans-serif", transform: "rotate(90deg)", transformOrigin: "center" }}>
           {fmt(seconds)}
         </text>
@@ -575,7 +575,7 @@ function BackCountryFit() {
         {activeTab === "progress" && <Progress appData={appData} logWeight={logWeight} />}
       </div>
 
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "#1e4068", borderTop: "1px solid #3a5f8a", display: "flex", padding: "8px 0 16px" }}>
+      <div style={{ position: "fixed", bottom: 0, left: `${Math.round((appData.currentWeek/12)*100)}%`, transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: "#1e4068", borderTop: "1px solid #3a5f8a", display: "flex", padding: "8px 0 16px" }}>
         {[
           { id: "dashboard", icon: "⊞", label: "HOME" },
           { id: "programs", icon: "▤", label: "PROGRAMS" },
@@ -601,13 +601,13 @@ function Dashboard({ setActiveTab, appData, consumed, targets }) {
     <div className="fade-in">
       <div style={{ background: "linear-gradient(135deg,#1a2e1a 0%,#162e4a 100%)", border: "1px solid #2a3a1a", borderRadius: 16, padding: 20, marginBottom: 16, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -20, right: -20, fontSize: 80, opacity: 0.08 }}>🏔️</div>
-        <div style={{ fontSize: 12, color: "#8ba88b", letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>WEEK {appData.currentWeek} · DAY 4</div>
-        <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1, marginBottom: 8 }}>UPPER BODY<br />PULL DAY</div>
-        <div style={{ fontSize: 13, color: "#8ba88b", fontFamily: "'Barlow',sans-serif", marginBottom: 16 }}>5 exercises · ~52 min estimated</div>
+        <div style={{ fontSize: 12, color: "#8ba88b", letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>WEEK {appData.currentWeek}</div>
+        <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1, marginBottom: 8 }}>TODAY'S<br />WORKOUT</div>
+        <div style={{ fontSize: 13, color: "#8ba88b", fontFamily: "'Barlow',sans-serif", marginBottom: 16 }}>{todayExercises.length} exercises · tap to start</div>
         <button onClick={() => setActiveTab("today")} className="pulse" style={{ background: "#e8ff6b", color: "#0d0d0d", border: "none", padding: "12px 28px", borderRadius: 8, fontFamily: "'Barlow Condensed',sans-serif", fontSize: 15, fontWeight: 800, letterSpacing: 1, cursor: "pointer" }}>START WORKOUT →</button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-        {[{ label: "Workouts Done", value: appData.workoutsThisWeek + 21, unit: "" }, { label: "Current Week", value: appData.currentWeek, unit: "of 12" }, { label: "Avg Session", value: "52", unit: "min" }, { label: "Streak", value: appData.streak, unit: "days" }].map((s) => (
+        {[{ label: "Workouts Done", value: appData.workoutsThisWeek, unit: "" }, { label: "Current Week", value: appData.currentWeek, unit: "of 12" }, { label: "Avg Session", value: "52", unit: "min" }, { label: "Streak", value: appData.streak, unit: "days" }].map((s) => (
           <div key={s.label} style={{ background: "#141414", border: "1px solid #1e1e1e", borderRadius: 12, padding: "14px 16px" }}>
             <div style={{ fontSize: 32, fontWeight: 900, color: "#e8ff6b", lineHeight: 1 }}>{s.value}<span style={{ fontSize: 14, color: "#555", fontWeight: 600 }}> {s.unit}</span></div>
             <div style={{ fontSize: 10, color: "#555", letterSpacing: 1, fontWeight: 700, marginTop: 2 }}>{s.label}</div>
@@ -636,11 +636,11 @@ function Dashboard({ setActiveTab, appData, consumed, targets }) {
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, letterSpacing: 2, color: "#555", fontWeight: 700, marginBottom: 10 }}>THIS WEEK</div>
         <div style={{ display: "flex", gap: 6 }}>
-          {workoutDays.map((d) => (
+          {WEEK_TEMPLATE.map((d, di) => { const done = di < appData.workoutsThisWeek; return (
             <div key={d.day} style={{ flex: 1, textAlign: "center" }}>
               <div style={{ fontSize: 9, color: "#555", fontWeight: 700, letterSpacing: 1, marginBottom: 5 }}>{d.day}</div>
-              <div style={{ height: 36, borderRadius: 8, background: d.done ? typeColors[d.type] : d.type === "rest" ? "#111" : "#141414", border: `1px solid ${d.done ? typeColors[d.type] : "#1e1e1e"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: d.done ? 14 : 10, color: d.done ? "#0d0d0d" : typeColors[d.type], fontWeight: 700 }}>
-                {d.done ? "✓" : d.type === "rest" ? "—" : "·"}
+              <div style={{ height: 36, borderRadius: 8, background: done ? typeColors[d.type] : d.type === "rest" ? "#111" : "#141414", border: `1px solid ${done ? typeColors[d.type] : "#1e1e1e"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: done ? 14 : 10, color: done ? "#0d0d0d" : typeColors[d.type], fontWeight: 700 }}>
+                {done ? "✓" : d.type === "rest" ? "—" : "·"}
               </div>
             </div>
           ))}
@@ -649,9 +649,9 @@ function Dashboard({ setActiveTab, appData, consumed, targets }) {
       <div style={{ background: "#141414", border: "1px solid #1e1e1e", borderRadius: 14, padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div><div style={{ fontSize: 11, letterSpacing: 2, color: "#555", fontWeight: 700 }}>CURRENT PROGRAM</div><div style={{ fontSize: 20, fontWeight: 800 }}>Backcountry Build</div></div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#e8ff6b" }}>50%</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: "#e8ff6b" }}>{Math.round((appData.currentWeek/12)*100)}%</div>
         </div>
-        <div className="progress-bar"><div className="progress-fill" style={{ width: "50%" }} /></div>
+        <div className="progress-bar"><div className="progress-fill" style={{ width: `${Math.round((appData.currentWeek/12)*100)}%` }} /></div>
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1 }}>
           <span>WEEK {appData.currentWeek}</span>
           <span style={{ color: "#2a2a2a" }}>{appData.lastSaved ? `☁ ${new Date(appData.lastSaved).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}` : ""}</span>
@@ -795,7 +795,7 @@ function Programs({ selectedProgram, setSelectedProgram }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {d.equipment.map((eq) => (
               <div key={eq} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#e8ff6b", flexShrink: 0 }} />
+                <div style={{ width: 6, height: 6, borderRadius: `${Math.round((appData.currentWeek/12)*100)}%`, background: "#e8ff6b", flexShrink: 0 }} />
                 <div style={{ fontSize: 13, fontWeight: 600, fontFamily: "'Barlow',sans-serif", color: "#ccc" }}>{eq}</div>
               </div>
             ))}
@@ -873,7 +873,7 @@ function Programs({ selectedProgram, setSelectedProgram }) {
             <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1 }}>{p.title}</div>
             <div style={{ fontSize: 13, color: "#777", marginBottom: 10 }}>{p.subtitle}</div>
             <div style={{ display: "flex", gap: 16, fontSize: 11, color: "#888", fontWeight: 700 }}><span>{p.weeks} WKS</span><span>{p.sessions}×/WEEK</span><span style={{ textTransform: "uppercase" }}>{p.level}</span></div>
-            <div style={{ position: "absolute", right: 16, bottom: "50%", transform: "translateY(50%)", fontSize: 18, color: "#333" }}>›</div>
+            <div style={{ position: "absolute", right: 16, bottom: `${Math.round((appData.currentWeek/12)*100)}%`, transform: "translateY(50%)", fontSize: 18, color: "#333" }}>›</div>
           </div>
         ))}
       </div>
@@ -1122,7 +1122,7 @@ function MealPlanSection({ loggedMeals, toggleMeal, mealPortions, mealSubstitute
                 style={{ width: "100%", background: editSubIdx === null ? "#1a2e1a" : "#141414", border: `1px solid ${editSubIdx === null ? "#2a5a2a" : "#1e1e1e"}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    {editSubIdx === null && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#6bffb8", flexShrink: 0 }} />}
+                    {editSubIdx === null && <div style={{ width: 8, height: 8, borderRadius: `${Math.round((appData.currentWeek/12)*100)}%`, background: "#6bffb8", flexShrink: 0 }} />}
                     <div style={{ fontSize: 14, fontWeight: 800, color: "#f0ede6", fontFamily: "'Barlow Condensed',sans-serif" }}>Original Plan</div>
                   </div>
                   <div style={{ fontSize: 11, color: "#555", fontFamily: "'Barlow',sans-serif", lineHeight: 1.4 }}>{editing.items.join(" · ")}</div>
@@ -1138,7 +1138,7 @@ function MealPlanSection({ loggedMeals, toggleMeal, mealPortions, mealSubstitute
                   style={{ width: "100%", background: editSubIdx === si ? "#162e4a" : "#141414", border: `1px solid ${editSubIdx === si ? "#2a4a6a" : "#1e1e1e"}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      {editSubIdx === si && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#6bbaff", flexShrink: 0 }} />}
+                      {editSubIdx === si && <div style={{ width: 8, height: 8, borderRadius: `${Math.round((appData.currentWeek/12)*100)}%`, background: "#6bbaff", flexShrink: 0 }} />}
                       <div style={{ fontSize: 14, fontWeight: 800, color: "#f0ede6", fontFamily: "'Barlow Condensed',sans-serif" }}>{sub.label}</div>
                     </div>
                     <div style={{ fontSize: 11, color: "#555", fontFamily: "'Barlow',sans-serif", lineHeight: 1.4 }}>{sub.items.join(" · ")}</div>
@@ -1180,7 +1180,7 @@ function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets
               <circle cx={50} cy={50} r={42} fill="none" stroke="#e8ff6b" strokeWidth={10}
                 strokeDasharray={`${Math.min(calPct/100,1)*2*Math.PI*42} ${2*Math.PI*42}`} strokeLinecap="round" style={{ transition: "stroke-dasharray 0.6s ease" }} />
             </svg>
-            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
+            <div style={{ position: "absolute", top: `${Math.round((appData.currentWeek/12)*100)}%`, left: `${Math.round((appData.currentWeek/12)*100)}%`, transform: "translate(-50%,-50%)", textAlign: "center" }}>
               <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1 }}>{calPct}%</div>
               <div style={{ fontSize: 8, color: "#6b9b6b", fontWeight: 700, letterSpacing: 1 }}>CALS</div>
             </div>
@@ -1244,9 +1244,9 @@ function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets
             <div style={{ fontSize: 11, color: "#2a5a7a", fontWeight: 700, letterSpacing: 1 }}>{Math.round(water*236.6)}ml / {Math.round(WATER_GOAL*236.6)}ml</div>
             <div style={{ height: 8, background: "#1a2a3a", borderRadius: 4, overflow: "hidden", margin: "16px 0 20px" }}><div style={{ height: "100%", width: `${(water/WATER_GOAL)*100}%`, background: "linear-gradient(90deg,#4a9abf,#6bbaff)", borderRadius: 4, transition: "width 0.4s" }} /></div>
             <div style={{ display: "flex", gap: 16, justifyContent: "center", alignItems: "center" }}>
-              <button className="water-btn" onClick={() => setWater(w => Math.max(0,w-1))} style={{ width: 52, height: 52, borderRadius: "50%", background: "#1a2a3a", border: "2px solid #2a3a4a", color: "#6bbaff", fontSize: 24, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+              <button className="water-btn" onClick={() => setWater(w => Math.max(0,w-1))} style={{ width: 52, height: 52, borderRadius: `${Math.round((appData.currentWeek/12)*100)}%`, background: "#1a2a3a", border: "2px solid #2a3a4a", color: "#6bbaff", fontSize: 24, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
               <div style={{ fontSize: 13, color: "#4a7a9b", fontWeight: 700, letterSpacing: 1 }}>1 CUP</div>
-              <button className="water-btn" onClick={() => setWater(w => Math.min(WATER_GOAL+4,w+1))} style={{ width: 52, height: 52, borderRadius: "50%", background: "#1a3a5a", border: "2px solid #2a5a8a", color: "#6bbaff", fontSize: 24, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+              <button className="water-btn" onClick={() => setWater(w => Math.min(WATER_GOAL+4,w+1))} style={{ width: 52, height: 52, borderRadius: `${Math.round((appData.currentWeek/12)*100)}%`, background: "#1a3a5a", border: "2px solid #2a5a8a", color: "#6bbaff", fontSize: 24, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
             </div>
           </div>
           <div style={{ background: "#141414", border: "1px solid #1e1e1e", borderRadius: 14, padding: 16, marginBottom: 14 }}>
@@ -1585,7 +1585,7 @@ function Outdoor({ appData, update }) {
                   { n: "5", text: "Paste them below and tap Connect" },
                 ].map(s => (
                   <div key={s.n} style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "flex-start" }}>
-                    <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#2a3a4a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#6bbaff", flexShrink: 0 }}>{s.n}</div>
+                    <div style={{ width: 22, height: 22, borderRadius: `${Math.round((appData.currentWeek/12)*100)}%`, background: "#2a3a4a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#6bbaff", flexShrink: 0 }}>{s.n}</div>
                     <div style={{ fontSize: 12, color: "#8a9ab8", fontFamily: "'Barlow',sans-serif", lineHeight: 1.5, paddingTop: 2 }}>{s.text}</div>
                   </div>
                 ))}
@@ -1681,7 +1681,7 @@ function Progress({ appData, logWeight }) {
           <div style={{ flex: 1, position: "relative" }}>
             <input type="number" placeholder="e.g. 185" value={weightInput} onChange={e => setWeightInput(e.target.value)}
               style={{ width: "100%", background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, padding: "12px 50px 12px 14px", color: "#f0ede6", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 22, fontWeight: 800 }} />
-            <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#555", fontWeight: 700 }}>LBS</span>
+            <span style={{ position: "absolute", right: 12, top: `${Math.round((appData.currentWeek/12)*100)}%`, transform: "translateY(-50%)", fontSize: 11, color: "#555", fontWeight: 700 }}>LBS</span>
           </div>
           <button onClick={handleLog} style={{ background: logged ? "#1a3a1a" : "#e8ff6b", color: logged ? "#6bffb8" : "#0d0d0d", border: "none", padding: "12px 20px", borderRadius: 8, fontFamily: "'Barlow Condensed',sans-serif", fontSize: 15, fontWeight: 800, cursor: "pointer", transition: "all 0.3s", whiteSpace: "nowrap" }}>
             {logged ? "SAVED ✓" : "LOG IT"}
