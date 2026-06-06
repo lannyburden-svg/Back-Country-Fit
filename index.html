@@ -62,7 +62,6 @@ const DEFAULT_STATE = {
   workoutsThisWeek: 2, currentWeek: 6, streak: 5, lastSaved: null,
   weightLog: [],
   macroTargets: { cal: 3300, p: 246, c: 340, f: 84 },
-  photoMeals: [],
   activities: [], // [{id, type, name, date, distance, duration, route:[{lat,lng}], stravaId}]
   stravaConnected: false,
   stravaClientId: "",
@@ -322,134 +321,7 @@ function RestTimer({ onClose }) {
   );
 }
 
-// ─── AI Photo Food Logger ──────────────────────────────────────────────────────
-function PhotoFoodLogger({ onAdd, onClose }) {
-  const [stage, setStage] = useState("upload"); // upload | analyzing | result | error
-  const [preview, setPreview] = useState(null);
-  const [result, setResult] = useState(null);
-  const [errorMsg, setErrorMsg] = useState("");
-  const fileRef = useRef(null);
 
-  const handleFile = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const b64 = ev.target.result.split(",")[1];
-      setPreview(ev.target.result);
-      setStage("analyzing");
-      try {
-        const resp = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 1000,
-            messages: [{
-              role: "user",
-              content: [
-                { type: "image", source: { type: "base64", media_type: file.type || "image/jpeg", data: b64 } },
-                { type: "text", text: `Analyze this food image and estimate nutritional content. Respond ONLY with a JSON object, no markdown, no backticks, no extra text. Format: {"name":"meal name","cal":number,"p":number,"c":number,"f":number,"items":["item1","item2"]} where cal=calories, p=protein grams, c=carb grams, f=fat grams.` }
-              ]
-            }]
-          })
-        });
-        const data = await resp.json();
-        const text = data.content?.find(b => b.type === "text")?.text || "";
-        const clean = text.replace(/```json|```/g, "").trim();
-        const parsed = JSON.parse(clean);
-        setResult(parsed);
-        setStage("result");
-      } catch (err) {
-        setErrorMsg("Couldn't analyze the image. Try a clearer photo.");
-        setStage("error");
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.95)", zIndex: 100, display: "flex", flexDirection: "column", fontFamily: "'Barlow Condensed',sans-serif", overflowY: "auto" }}>
-      <div style={{ padding: "24px 20px 100px", maxWidth: 480, margin: "0 auto", width: "100%" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 11, letterSpacing: 3, color: "#e8ff6b", fontWeight: 700 }}>AI FOOD SCANNER</div>
-            <div style={{ fontSize: 24, fontWeight: 900 }}>SNAP YOUR MEAL</div>
-          </div>
-          <button onClick={onClose} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, padding: "8px 14px", color: "#888", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>✕ CLOSE</button>
-        </div>
-
-        {stage === "upload" && (
-          <div>
-            <div style={{ background: "#0f1a0f", border: "2px dashed #2a4a2a", borderRadius: 16, padding: 40, textAlign: "center", marginBottom: 16, cursor: "pointer" }} onClick={() => fileRef.current?.click()}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>📸</div>
-              <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>TAP TO UPLOAD PHOTO</div>
-              <div style={{ fontSize: 12, color: "#555", fontFamily: "'Barlow',sans-serif" }}>Take a photo of your meal or choose from library</div>
-            </div>
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: "none" }} />
-            <div style={{ background: "#0f1a0f", border: "1px solid #1e2e1e", borderRadius: 10, padding: "10px 14px", display: "flex", gap: 10 }}>
-              <span>🔬</span>
-              <div style={{ fontSize: 11, color: "#6b9b6b", fontFamily: "'Barlow',sans-serif", lineHeight: 1.5 }}>Claude's AI will analyze your photo and estimate calories, protein, carbs, and fat automatically.</div>
-            </div>
-          </div>
-        )}
-
-        {stage === "analyzing" && (
-          <div style={{ textAlign: "center", paddingTop: 40 }}>
-            {preview && <img src={preview} alt="food" style={{ width: "100%", borderRadius: 16, marginBottom: 24, maxHeight: 260, objectFit: "cover" }} />}
-            <div style={{ fontSize: 36, marginBottom: 16 }}>🔬</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: "#e8ff6b", marginBottom: 8 }}>ANALYZING…</div>
-            <div style={{ fontSize: 13, color: "#555", fontFamily: "'Barlow',sans-serif" }}>Claude is estimating your macros</div>
-          </div>
-        )}
-
-        {stage === "result" && result && (
-          <div>
-            {preview && <img src={preview} alt="food" style={{ width: "100%", borderRadius: 16, marginBottom: 16, maxHeight: 240, objectFit: "cover" }} />}
-            <div style={{ background: "#0f1a0f", border: "1px solid #2a4a2a", borderRadius: 14, padding: 18, marginBottom: 16 }}>
-              <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>{result.name}</div>
-              <div style={{ fontSize: 11, color: "#555", fontFamily: "'Barlow',sans-serif", marginBottom: 14 }}>{result.items?.join(" · ")}</div>
-              <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-                <div style={{ flex: 1, background: "#141414", borderRadius: 10, padding: "12px 8px", textAlign: "center" }}>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: "#e8ff6b" }}>{result.cal}</div>
-                  <div style={{ fontSize: 9, color: "#555", fontWeight: 700, letterSpacing: 1 }}>KCAL</div>
-                </div>
-                {[["PROTEIN", result.p, "#e8ff6b"], ["CARBS", result.c, "#6bffb8"], ["FAT", result.f, "#ff9f6b"]].map(([l, v, c]) => (
-                  <div key={l} style={{ flex: 1, background: "#141414", borderRadius: 10, padding: "12px 8px", textAlign: "center" }}>
-                    <div style={{ fontSize: 26, fontWeight: 900, color: c }}>{v}g</div>
-                    <div style={{ fontSize: 9, color: "#555", fontWeight: 700, letterSpacing: 1 }}>{l}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ fontSize: 10, color: "#555", fontFamily: "'Barlow',sans-serif", fontStyle: "italic" }}>⚠ AI estimates — actual values may vary</div>
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => { onAdd(result); onClose(); }}
-                style={{ flex: 1, background: "#e8ff6b", color: "#0d0d0d", border: "none", padding: 16, borderRadius: 10, fontFamily: "'Barlow Condensed',sans-serif", fontSize: 16, fontWeight: 800, cursor: "pointer" }}>
-                LOG THIS MEAL ✓
-              </button>
-              <button onClick={() => { setStage("upload"); setPreview(null); setResult(null); }}
-                style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", padding: "16px 18px", borderRadius: 10, color: "#888", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                RETAKE
-              </button>
-            </div>
-          </div>
-        )}
-
-        {stage === "error" && (
-          <div style={{ textAlign: "center", paddingTop: 40 }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: "#ff6b6b", marginBottom: 8 }}>{errorMsg}</div>
-            <button onClick={() => setStage("upload")}
-              style={{ background: "#e8ff6b", color: "#0d0d0d", border: "none", padding: "12px 28px", borderRadius: 10, fontFamily: "'Barlow Condensed',sans-serif", fontSize: 15, fontWeight: 800, cursor: "pointer", marginTop: 16 }}>
-              TRY AGAIN
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── Macro Target Editor ───────────────────────────────────────────────────────
 function MacroEditor({ targets, onSave, onClose }) {
@@ -504,7 +376,6 @@ function BackCountryFit() {
   const [saveStatus, setSaveStatus] = useState("idle");
   const [loaded, setLoaded] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
-  const [showPhotoLogger, setShowPhotoLogger] = useState(false);
   const [showMacroEditor, setShowMacroEditor] = useState(false);
   const [showCloudSync, setShowCloudSync] = useState(false);
   const [appData, setAppData] = useState(DEFAULT_STATE);
@@ -543,15 +414,7 @@ function BackCountryFit() {
 
   const toggleMeal = useCallback((idx) => setAppData(p => ({ ...p, loggedMeals: { ...p.loggedMeals, [idx]: !p.loggedMeals[idx] } })), []);
   const setWater = useCallback((val) => setAppData(p => ({ ...p, water: typeof val === "function" ? val(p.water) : val })), []);
-  const resetDay = useCallback(() => setAppData(p => ({ ...p, completedSets: {}, loggedMeals: {}, water: 0, photoMeals: [] })), []);
-
-  const addPhotoMeal = useCallback((meal) => {
-    setAppData(p => ({ ...p, photoMeals: [...(p.photoMeals||[]), { ...meal, id: Date.now(), time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }] }));
-  }, []);
-
-  const removePhotoMeal = useCallback((id) => {
-    setAppData(p => ({ ...p, photoMeals: p.photoMeals.filter(m => m.id !== id) }));
-  }, []);
+  const resetDay = useCallback(() => setAppData(p => ({ ...p, completedSets: {}, loggedMeals: {}, water: 0 })), []);
 
   const saveMacroTargets = useCallback((t) => setAppData(p => ({ ...p, macroTargets: t })), []);
   const loadCloudData = useCallback((data) => { setAppData(p => ({ ...DEFAULT_STATE, ...data })); localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }, []);
@@ -568,10 +431,8 @@ function BackCountryFit() {
 
   const targets = appData.macroTargets || DEFAULT_STATE.macroTargets;
 
-  const consumed = [
-    ...mealPlan.filter((_, i) => appData.loggedMeals[i]).map(m => m.macros),
-    ...(appData.photoMeals || []).map(m => ({ cal: m.cal, p: m.p, c: m.c, f: m.f }))
-  ].reduce((acc, m) => ({ cal: acc.cal + m.cal, p: acc.p + m.p, c: acc.c + m.c, f: acc.f + m.f }), { cal: 0, p: 0, c: 0, f: 0 });
+  const consumed = mealPlan.filter((_, i) => appData.loggedMeals[i]).map(m => m.macros)
+    .reduce((acc, m) => ({ cal: acc.cal + m.cal, p: acc.p + m.p, c: acc.c + m.c, f: acc.f + m.f }), { cal: 0, p: 0, c: 0, f: 0 });
 
   if (!loaded) return (
     <div style={{ background: "#0d0d0d", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, fontFamily: "'Barlow Condensed',sans-serif" }}>
@@ -609,7 +470,6 @@ function BackCountryFit() {
       `}</style>
 
       {showTimer && <RestTimer onClose={() => setShowTimer(false)} />}
-      {showPhotoLogger && <PhotoFoodLogger onAdd={addPhotoMeal} onClose={() => setShowPhotoLogger(false)} />}
       {showMacroEditor && <MacroEditor targets={targets} onSave={saveMacroTargets} onClose={() => setShowMacroEditor(false)} />
       }{showCloudSync && <CloudSync appData={appData} onClose={() => setShowCloudSync(false)} onLoad={loadCloudData} />}
 
@@ -640,7 +500,7 @@ function BackCountryFit() {
         {activeTab === "dashboard" && <Dashboard setActiveTab={setActiveTab} appData={appData} consumed={consumed} targets={targets} />}
         {activeTab === "programs" && <Programs selectedProgram={selectedProgram} setSelectedProgram={setSelectedProgram} />}
         {activeTab === "today" && <TodayWorkout completedSets={appData.completedSets} toggleSet={toggleSet} resetDay={resetDay} setShowTimer={setShowTimer} />}
-        {activeTab === "nutrition" && <Nutrition consumed={consumed} loggedMeals={appData.loggedMeals} toggleMeal={toggleMeal} water={appData.water} setWater={setWater} targets={targets} setShowMacroEditor={setShowMacroEditor} setShowPhotoLogger={setShowPhotoLogger} photoMeals={appData.photoMeals||[]} removePhotoMeal={removePhotoMeal} />}
+        {activeTab === "nutrition" && <Nutrition consumed={consumed} loggedMeals={appData.loggedMeals} toggleMeal={toggleMeal} water={appData.water} setWater={setWater} targets={targets} setShowMacroEditor={setShowMacroEditor} />}
         {activeTab === "outdoor" && <Outdoor appData={appData} update={update} />}
         {activeTab === "progress" && <Progress appData={appData} logWeight={logWeight} />}
       </div>
@@ -1047,7 +907,7 @@ function TodayWorkout({ completedSets, toggleSet, resetDay, setShowTimer }) {
 }
 
 // ─── Nutrition ─────────────────────────────────────────────────────────────────
-function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets, setShowMacroEditor, setShowPhotoLogger, photoMeals, removePhotoMeal }) {
+function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets, setShowMacroEditor }) {
   const [activeSection, setActiveSection] = useState("macros");
   const calPct = Math.round((consumed.cal / targets.cal) * 100);
   return (
@@ -1114,32 +974,6 @@ function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets
 
       {activeSection === "meals" && (
         <div>
-          {/* AI Photo Logger button */}
-          <button onClick={() => setShowPhotoLogger(true)} style={{ width: "100%", background: "linear-gradient(135deg,#1a2e1a,#0f1a0f)", border: "1px solid #2a4a2a", borderRadius: 12, padding: "14px 16px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 10, background: "#1a3a1a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>📸</div>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "#e8ff6b", fontFamily: "'Barlow Condensed',sans-serif" }}>LOG WITH PHOTO</div>
-              <div style={{ fontSize: 11, color: "#6b9b6b", fontFamily: "'Barlow',sans-serif" }}>AI estimates macros from your meal photo</div>
-            </div>
-            <div style={{ marginLeft: "auto", fontSize: 18, color: "#2a4a2a" }}>›</div>
-          </button>
-
-          {/* Photo-logged meals */}
-          {photoMeals.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: "#555", letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>AI SCANNED MEALS</div>
-              {photoMeals.map(m => (
-                <div key={m.id} style={{ background: "#162e4a", border: "1px solid #1a2a3a", borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 800 }}>{m.name}</div>
-                    <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>{m.time} · <span style={{ color: "#e8ff6b" }}>{m.cal} kcal</span> · P{m.p}g C{m.c}g F{m.f}g</div>
-                  </div>
-                  <button onClick={() => removePhotoMeal(m.id)} style={{ background: "none", border: "none", color: "#ff6b6b", fontSize: 16, cursor: "pointer", padding: "4px 8px" }}>✕</button>
-                </div>
-              ))}
-            </div>
-          )}
-
           <div style={{ fontSize: 10, color: "#555", letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>MEAL PLAN</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {mealPlan.map((meal, i) => (
