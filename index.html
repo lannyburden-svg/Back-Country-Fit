@@ -90,9 +90,180 @@ function MacroRing({ value, max, color, size = 80, stroke = 8, label, unit }) {
 }
 
 function SaveBadge({ status }) {
-  const c = { saving: ["#ff9f6b","SAVING…","⟳"], saved: ["#6bffb8","SAVED","✓"], error: ["#ff6b6b","ERROR","✕"], idle: ["#333","AUTO-SAVE ON","☁"] }[status] || ["#333","AUTO-SAVE ON","☁"];
+  const c = { saving: ["#ff9f6b","SAVING...","~"], saved: ["#6bffb8","SAVED","OK"], error: ["#ff6b6b","ERROR","!"], idle: ["#555","LOCAL",""] }[status] || ["#555","LOCAL",""];
   return <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9, color: c[0], fontWeight: 700, letterSpacing: 1, transition: "color 0.3s" }}><span style={{ fontSize: 11 }}>{c[2]}</span>{c[1]}</div>;
 }
+
+// Cloud Sync Modal
+function CloudSync({ appData, onClose, onLoad }) {
+  const [binId, setBinId] = useState(() => localStorage.getItem("bcfit-bin-id") || "");
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem("bcfit-api-key") || "");
+  const [status, setStatus] = useState("idle");
+  const [msg, setMsg] = useState("");
+  const [tab, setTab] = useState(localStorage.getItem("bcfit-bin-id") ? "sync" : "setup");
+
+  const saveToCloud = async () => {
+    if (!apiKey) { setMsg("Enter your API key first."); return; }
+    setStatus("saving"); setMsg("");
+    try {
+      const payload = { ...appData, lastCloudSave: new Date().toISOString() };
+      let res, data;
+      if (binId) {
+        res = await fetch("https://api.jsonbin.io/v3/b/" + binId, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "X-Master-Key": apiKey },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        res = await fetch("https://api.jsonbin.io/v3/b", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Master-Key": apiKey, "X-Bin-Name": "BCFit-Data", "X-Bin-Private": "true" },
+          body: JSON.stringify(payload)
+        });
+      }
+      data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Save failed");
+      const newId = binId || data.metadata?.id;
+      if (newId) { setBinId(newId); localStorage.setItem("bcfit-bin-id", newId); }
+      localStorage.setItem("bcfit-api-key", apiKey);
+      setStatus("done"); setMsg("Data saved to cloud!");
+    } catch (e) { setStatus("error"); setMsg("Error: " + e.message); }
+  };
+
+  const loadFromCloud = async () => {
+    if (!binId || !apiKey) { setMsg("Enter your Bin ID and API key first."); return; }
+    setStatus("loading"); setMsg("");
+    try {
+      const res = await fetch("https://api.jsonbin.io/v3/b/" + binId + "/latest", {
+        headers: { "X-Master-Key": apiKey }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Load failed");
+      localStorage.setItem("bcfit-api-key", apiKey);
+      localStorage.setItem("bcfit-bin-id", binId);
+      onLoad(data.record);
+      setStatus("done"); setMsg("Data loaded from cloud!");
+    } catch (e) { setStatus("error"); setMsg("Error: " + e.message); }
+  };
+
+  const busy = status === "saving" || status === "loading";
+  const btnBase = {
+    border: "none", borderRadius: 10, fontFamily: "'Barlow Condensed',sans-serif",
+    fontSize: 15, fontWeight: 800, letterSpacing: 1, padding: "13px 16px",
+    cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.6 : 1,
+    transition: "opacity 0.2s", width: "100%", display: "flex", alignItems: "center", gap: 12, textAlign: "left"
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.93)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: "'Barlow Condensed',sans-serif" }}>
+      <div style={{ width: "100%", maxWidth: 480, background: "#111", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", borderTop: "1px solid #1e2e3e" }}>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 11, letterSpacing: 3, color: "#6bbaff", fontWeight: 700, marginBottom: 2 }}>CLOUD BACKUP</div>
+            <div style={{ fontSize: 26, fontWeight: 900 }}>SYNC YOUR DATA</div>
+          </div>
+          <button onClick={onClose} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, padding: "7px 13px", color: "#888", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>X CLOSE</button>
+        </div>
+
+        <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+          {[["setup","SETUP"],["sync","SYNC"]].map(([id,label]) => (
+            <button key={id} onClick={() => setTab(id)} style={{ flex: 1, padding: "9px 4px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 12, fontWeight: 800, letterSpacing: 1, background: tab===id ? "#6bbaff" : "#1a2a3a", color: tab===id ? "#0d0d0d" : "#4a7a9b", transition: "all 0.2s" }}>{label}</button>
+          ))}
+        </div>
+
+        {tab === "setup" && (
+          <div>
+            <div style={{ background: "#0f1a2a", border: "1px solid #1a2a3a", borderRadius: 12, padding: "12px 14px", marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: "#6bbaff", fontWeight: 700, letterSpacing: 2, marginBottom: 10 }}>HOW IT WORKS</div>
+              {[
+                { n:"1", t:"Create a free account at jsonbin.io" },
+                { n:"2", t:"Go to API Keys and copy your Master Key" },
+                { n:"3", t:"Paste it below — Bin ID is auto-created on first save" },
+                { n:"4", t:"To restore on another device: enter same Bin ID + API key" },
+              ].map(s => (
+                <div key={s.n} style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "flex-start" }}>
+                  <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#1a2e4a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#6bbaff", flexShrink: 0 }}>{s.n}</div>
+                  <div style={{ fontSize: 12, color: "#7a9ab8", fontFamily: "'Barlow',sans-serif", lineHeight: 1.5, paddingTop: 2 }}>{s.t}</div>
+                </div>
+              ))}
+              <a href="https://jsonbin.io" target="_blank" rel="noopener" style={{ display: "inline-block", marginTop: 4, fontSize: 11, color: "#6bbaff", fontWeight: 700, letterSpacing: 1 }}>OPEN JSONBIN.IO</a>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 10, color: "#7a90b0", fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>MASTER KEY (API KEY)</div>
+              <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="$2a$10$..."
+                style={{ width: "100%", background: "#1a2a3a", border: "1px solid #2a3a4a", borderRadius: 8, padding: "12px 14px", color: "#f0ede6", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 15, fontWeight: 700 }} />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: "#7a90b0", fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>BIN ID <span style={{ color: "#3a5a7a", fontWeight: 400 }}>(leave blank for first save)</span></div>
+              <input value={binId} onChange={e => setBinId(e.target.value.trim())} placeholder="auto-created on first save"
+                style={{ width: "100%", background: "#1a2a3a", border: "1px solid #2a3a4a", borderRadius: 8, padding: "12px 14px", color: "#f0ede6", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 15, fontWeight: 700 }} />
+            </div>
+
+            <button onClick={() => { localStorage.setItem("bcfit-api-key", apiKey); if (binId) localStorage.setItem("bcfit-bin-id", binId); setTab("sync"); setStatus("done"); setMsg("Credentials saved."); }}
+              style={{ border: "none", borderRadius: 10, fontFamily: "'Barlow Condensed',sans-serif", fontSize: 15, fontWeight: 800, letterSpacing: 1, padding: "13px 0", cursor: "pointer", width: "100%", background: "#6bbaff", color: "#0d0d0d" }}>
+              SAVE CREDENTIALS
+            </button>
+          </div>
+        )}
+
+        {tab === "sync" && (
+          <div>
+            {binId ? (
+              <div style={{ background: "#0f1a0f", border: "1px solid #1a2e1a", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: "#555", fontWeight: 700, letterSpacing: 1 }}>YOUR BIN ID</div>
+                  <div style={{ fontSize: 12, color: "#6bffb8", fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{binId}</div>
+                </div>
+                <button onClick={() => { try { navigator.clipboard.writeText(binId); } catch(e){} setMsg("Bin ID copied!"); }} style={{ background: "#1a2a1a", border: "1px solid #2a4a2a", borderRadius: 6, padding: "5px 10px", color: "#6bffb8", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>COPY</button>
+              </div>
+            ) : (
+              <div style={{ background: "#2a1a0f", border: "1px solid #4a2a1a", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 11, color: "#ff9f6b", fontFamily: "'Barlow',sans-serif" }}>
+                No Bin ID yet. Save to cloud first and one will be created.
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+              <button onClick={saveToCloud} disabled={busy} style={{ ...btnBase, background: "#e8ff6b", color: "#0d0d0d" }}>
+                <span style={{ fontSize: 22, flexShrink: 0 }}>UP</span>
+                <div>
+                  <div>{status === "saving" ? "SAVING..." : "SAVE TO CLOUD"}</div>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: "#0d0d0d", opacity: 0.6 }}>{appData.lastSaved ? "Local: " + new Date(appData.lastSaved).toLocaleString() : "Push your data up"}</div>
+                </div>
+              </button>
+
+              <button onClick={loadFromCloud} disabled={busy || !binId}
+                style={{ ...btnBase, background: binId ? "#1a2e4a" : "#141414", color: binId ? "#6bbaff" : "#444", border: "1px solid " + (binId ? "#2a4a6a" : "#2a2a2a") }}>
+                <span style={{ fontSize: 22, flexShrink: 0 }}>DN</span>
+                <div>
+                  <div>{status === "loading" ? "LOADING..." : "LOAD FROM CLOUD"}</div>
+                  <div style={{ fontSize: 9, fontWeight: 600, opacity: 0.6 }}>{binId ? "Overwrites local data with cloud save" : "Set up credentials first"}</div>
+                </div>
+              </button>
+            </div>
+
+            {!apiKey && (
+              <div style={{ background: "#2a1a0f", border: "1px solid #4a2a1a", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 11, color: "#ff9f6b", fontFamily: "'Barlow',sans-serif" }}>
+                No API key found. Go to Setup tab.
+              </div>
+            )}
+
+            <button onClick={() => setTab("setup")} style={{ background: "none", border: "1px solid #1a2a3a", borderRadius: 8, padding: "9px 0", width: "100%", color: "#4a7a9b", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 1, cursor: "pointer" }}>CHANGE CREDENTIALS</button>
+          </div>
+        )}
+
+        {msg && (
+          <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 10, background: status === "error" ? "#2a0f0f" : "#0f2a0f", border: "1px solid " + (status === "error" ? "#4a1a1a" : "#1a4a1a"), fontSize: 12, color: status === "error" ? "#ff6b6b" : "#6bffb8", fontFamily: "'Barlow',sans-serif", fontWeight: 700 }}>
+            {msg}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 // ─── Rest Timer ────────────────────────────────────────────────────────────────
 function RestTimer({ onClose }) {
@@ -327,7 +498,7 @@ function MacroEditor({ targets, onSave, onClose }) {
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
-export default function BackCountryFit() {
+function BackCountryFit() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [saveStatus, setSaveStatus] = useState("idle");
@@ -335,13 +506,14 @@ export default function BackCountryFit() {
   const [showTimer, setShowTimer] = useState(false);
   const [showPhotoLogger, setShowPhotoLogger] = useState(false);
   const [showMacroEditor, setShowMacroEditor] = useState(false);
+  const [showCloudSync, setShowCloudSync] = useState(false);
   const [appData, setAppData] = useState(DEFAULT_STATE);
 
   useEffect(() => {
     async function load() {
       try {
-        const result = await window.storage.get(STORAGE_KEY);
-        if (result?.value) setAppData({ ...DEFAULT_STATE, ...JSON.parse(result.value) });
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) setAppData({ ...DEFAULT_STATE, ...JSON.parse(raw) });
       } catch {}
       setLoaded(true);
     }
@@ -353,7 +525,7 @@ export default function BackCountryFit() {
     setSaveStatus("saving");
     const t = setTimeout(async () => {
       try {
-        await window.storage.set(STORAGE_KEY, JSON.stringify({ ...appData, lastSaved: new Date().toISOString() }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...appData, lastSaved: new Date().toISOString() }));
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 2000);
       } catch { setSaveStatus("error"); }
@@ -382,6 +554,7 @@ export default function BackCountryFit() {
   }, []);
 
   const saveMacroTargets = useCallback((t) => setAppData(p => ({ ...p, macroTargets: t })), []);
+  const loadCloudData = useCallback((data) => { setAppData(p => ({ ...DEFAULT_STATE, ...data })); localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }, []);
 
   const logWeight = useCallback((w) => {
     const entry = { date: new Date().toLocaleDateString(), weight: parseFloat(w) };
@@ -437,7 +610,8 @@ export default function BackCountryFit() {
 
       {showTimer && <RestTimer onClose={() => setShowTimer(false)} />}
       {showPhotoLogger && <PhotoFoodLogger onAdd={addPhotoMeal} onClose={() => setShowPhotoLogger(false)} />}
-      {showMacroEditor && <MacroEditor targets={targets} onSave={saveMacroTargets} onClose={() => setShowMacroEditor(false)} />}
+      {showMacroEditor && <MacroEditor targets={targets} onSave={saveMacroTargets} onClose={() => setShowMacroEditor(false)} />
+      }{showCloudSync && <CloudSync appData={appData} onClose={() => setShowCloudSync(false)} onLoad={loadCloudData} />}
 
       <div style={{ padding: "20px 20px 0" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -448,15 +622,16 @@ export default function BackCountryFit() {
             </div>
             <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1, letterSpacing: -0.5 }}>{tabLabels[activeTab]}</div>
           </div>
-          {/* Avatar — dumbbell icon */}
-          <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg,#e8ff6b,#b8d43b)", border: "2px solid #e8ff6b", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#1a3a5c" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <rect x={2} y={10} width={3} height={4} rx={1}/>
-              <rect x={19} y={10} width={3} height={4} rx={1}/>
-              <rect x={5} y={8} width={3} height={8} rx={1}/>
-              <rect x={16} y={8} width={3} height={8} rx={1}/>
-              <line x1={8} y1={12} x2={16} y2={12} strokeWidth={3}/>
-            </svg>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+            <button onClick={() => setShowCloudSync(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: localStorage.getItem("bcfit-bin-id") ? "#1a2e4a" : "#1a1a2a", border: "1px solid " + (localStorage.getItem("bcfit-bin-id") ? "#2a5a8a" : "#2a2a3a"), borderRadius: 10, padding: "8px 12px", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif" }}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={localStorage.getItem("bcfit-bin-id") ? "#6bbaff" : "#555"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+              </svg>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1, color: localStorage.getItem("bcfit-bin-id") ? "#6bbaff" : "#555" }}>CLOUD</div>
+                <div style={{ fontSize: 8, color: localStorage.getItem("bcfit-bin-id") ? "#3a7a9a" : "#333", fontWeight: 700, letterSpacing: 0.5 }}>{localStorage.getItem("bcfit-bin-id") ? "LINKED" : "NOT SET"}</div>
+              </div>
+            </button>
           </div>
         </div>
       </div>
