@@ -47,22 +47,78 @@ const todayExercises = [
   { name: "Standing Calf Raise", sets: "4", reps: "15–20", rir: "0", muscle: "Calves" },
 ];
 const mealPlan = [
-  { meal: "Breakfast", time: "7:00 AM", icon: "🍳", items: ["4 whole eggs scrambled", "1 cup oats with blueberries", "1 cup black coffee"], macros: { cal: 620, p: 38, c: 72, f: 18 } },
-  { meal: "Mid-Morning", time: "10:00 AM", icon: "🥤", items: ["1 scoop whey protein", "1 banana", "1 tbsp almond butter"], macros: { cal: 340, p: 30, c: 38, f: 8 } },
-  { meal: "Lunch", time: "12:30 PM", icon: "🥗", items: ["200g grilled chicken breast", "1 cup white rice", "Mixed greens + olive oil"], macros: { cal: 680, p: 52, c: 74, f: 14 } },
-  { meal: "Pre-Workout", time: "3:30 PM", icon: "⚡", items: ["Greek yogurt (200g)", "1/2 cup granola", "Handful of almonds"], macros: { cal: 420, p: 22, c: 46, f: 16 } },
-  { meal: "Post-Workout", time: "6:00 PM", icon: "💪", items: ["2 scoops whey protein", "1 cup white rice", "Steamed broccoli"], macros: { cal: 560, p: 58, c: 62, f: 6 } },
-  { meal: "Dinner", time: "7:30 PM", icon: "🍽️", items: ["200g salmon fillet", "1 medium sweet potato", "Asparagus + garlic butter"], macros: { cal: 680, p: 46, c: 48, f: 22 } },
+  {
+    meal: "Breakfast", time: "7:00 AM", icon: "🍳",
+    items: ["4 whole eggs scrambled", "1 cup oats with blueberries", "1 cup black coffee"],
+    macros: { cal: 620, p: 38, c: 72, f: 18 },
+    subs: [
+      { label: "Egg whites only", items: ["6 egg whites scrambled", "1 cup oats with blueberries", "1 cup black coffee"], macros: { cal: 480, p: 34, c: 72, f: 4 } },
+      { label: "Greek yogurt bowl", items: ["200g Greek yogurt", "1/2 cup granola", "Mixed berries", "1 cup black coffee"], macros: { cal: 520, p: 28, c: 80, f: 10 } },
+      { label: "Protein pancakes", items: ["3 protein pancakes", "1 tbsp maple syrup", "1 cup black coffee"], macros: { cal: 560, p: 42, c: 64, f: 12 } },
+    ]
+  },
+  {
+    meal: "Mid-Morning", time: "10:00 AM", icon: "🥤",
+    items: ["1 scoop whey protein", "1 banana", "1 tbsp almond butter"],
+    macros: { cal: 340, p: 30, c: 38, f: 8 },
+    subs: [
+      { label: "Cottage cheese & fruit", items: ["200g cottage cheese", "1 cup mixed fruit"], macros: { cal: 280, p: 28, c: 30, f: 4 } },
+      { label: "Hard-boiled eggs", items: ["3 hard-boiled eggs", "1 apple", "Handful of walnuts"], macros: { cal: 380, p: 26, c: 22, f: 20 } },
+      { label: "Tuna rice cakes", items: ["1 can tuna", "4 rice cakes", "Mustard"], macros: { cal: 300, p: 34, c: 28, f: 4 } },
+    ]
+  },
+  {
+    meal: "Lunch", time: "12:30 PM", icon: "🥗",
+    items: ["200g grilled chicken breast", "1 cup white rice", "Mixed greens + olive oil"],
+    macros: { cal: 680, p: 52, c: 74, f: 14 },
+    subs: [
+      { label: "Ground beef bowl", items: ["200g lean ground beef", "1 cup white rice", "Salsa + cheese"], macros: { cal: 720, p: 54, c: 66, f: 22 } },
+      { label: "Canned tuna wrap", items: ["2 cans tuna", "2 large tortillas", "Avocado + lettuce"], macros: { cal: 640, p: 58, c: 62, f: 16 } },
+      { label: "Salmon & quinoa", items: ["180g salmon", "3/4 cup quinoa", "Steamed veg"], macros: { cal: 660, p: 50, c: 60, f: 20 } },
+    ]
+  },
+  {
+    meal: "Pre-Workout", time: "3:30 PM", icon: "⚡",
+    items: ["Greek yogurt (200g)", "1/2 cup granola", "Handful of almonds"],
+    macros: { cal: 420, p: 22, c: 46, f: 16 },
+    subs: [
+      { label: "Banana & peanut butter", items: ["2 bananas", "2 tbsp peanut butter"], macros: { cal: 380, p: 10, c: 58, f: 14 } },
+      { label: "Rice cakes & honey", items: ["4 rice cakes", "2 tbsp honey", "1 scoop protein"], macros: { cal: 400, p: 26, c: 60, f: 4 } },
+      { label: "Oats & protein", items: ["1 cup oats", "1 scoop protein powder", "1 tbsp honey"], macros: { cal: 450, p: 30, c: 62, f: 8 } },
+    ]
+  },
+  {
+    meal: "Post-Workout", time: "6:00 PM", icon: "💪",
+    items: ["2 scoops whey protein", "1 cup white rice", "Steamed broccoli"],
+    macros: { cal: 560, p: 58, c: 62, f: 6 },
+    subs: [
+      { label: "Chicken & potato", items: ["200g chicken breast", "1 large potato", "Green beans"], macros: { cal: 600, p: 54, c: 70, f: 8 } },
+      { label: "Eggs & toast", items: ["4 whole eggs", "3 slices whole wheat toast", "Tomato"], macros: { cal: 540, p: 40, c: 56, f: 18 } },
+      { label: "Ground turkey pasta", items: ["150g ground turkey", "1.5 cups pasta", "Marinara sauce"], macros: { cal: 620, p: 52, c: 74, f: 10 } },
+    ]
+  },
+  {
+    meal: "Dinner", time: "7:30 PM", icon: "🍽️",
+    items: ["200g salmon fillet", "1 medium sweet potato", "Asparagus + garlic butter"],
+    macros: { cal: 680, p: 46, c: 48, f: 22 },
+    subs: [
+      { label: "Steak & veg", items: ["200g sirloin steak", "1 cup roasted potatoes", "Mixed veg"], macros: { cal: 720, p: 52, c: 44, f: 28 } },
+      { label: "Chicken thighs & rice", items: ["250g chicken thighs", "1 cup brown rice", "Broccoli"], macros: { cal: 660, p: 50, c: 54, f: 18 } },
+      { label: "Pork tenderloin", items: ["220g pork tenderloin", "1 medium sweet potato", "Green beans"], macros: { cal: 640, p: 48, c: 46, f: 16 } },
+    ]
+  },
 ];
 const WATER_GOAL = 10;
 const typeColors = { strength: "#e8ff6b", power: "#ff9f6b", cardio: "#6bffb8", recovery: "#6bbaff", rest: "#444" };
 const STORAGE_KEY = "bcfit-data-v2";
 const DEFAULT_STATE = {
   completedSets: {}, loggedMeals: {}, water: 0,
-  workoutsThisWeek: 2, currentWeek: 6, streak: 5, lastSaved: null,
+  workoutsThisWeek: 0, currentWeek: 1, streak: 0, lastSaved: null,
   weightLog: [],
-  macroTargets: { cal: 3300, p: 246, c: 340, f: 84 },
-  activities: [], // [{id, type, name, date, distance, duration, route:[{lat,lng}], stravaId}]
+  macroTargets: { cal: 2500, p: 180, c: 250, f: 70 },
+  mealPortions: {},
+  mealSubstitutes: {},
+  activities: [],
   stravaConnected: false,
   stravaClientId: "",
 };
@@ -431,8 +487,13 @@ function BackCountryFit() {
 
   const targets = appData.macroTargets || DEFAULT_STATE.macroTargets;
 
-  const consumed = mealPlan.filter((_, i) => appData.loggedMeals[i]).map(m => m.macros)
-    .reduce((acc, m) => ({ cal: acc.cal + m.cal, p: acc.p + m.p, c: acc.c + m.c, f: acc.f + m.f }), { cal: 0, p: 0, c: 0, f: 0 });
+  const consumed = mealPlan.reduce((acc, meal, i) => {
+    if (!appData.loggedMeals[i]) return acc;
+    const subIdx = appData.mealSubstitutes?.[i];
+    const base = (subIdx != null && meal.subs?.[subIdx]) ? meal.subs[subIdx].macros : meal.macros;
+    const portion = appData.mealPortions?.[i] ?? 1;
+    return { cal: acc.cal + Math.round(base.cal * portion), p: acc.p + Math.round(base.p * portion), c: acc.c + Math.round(base.c * portion), f: acc.f + Math.round(base.f * portion) };
+  }, { cal: 0, p: 0, c: 0, f: 0 });
 
   if (!loaded) return (
     <div style={{ background: "#0d0d0d", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, fontFamily: "'Barlow Condensed',sans-serif" }}>
@@ -500,7 +561,7 @@ function BackCountryFit() {
         {activeTab === "dashboard" && <Dashboard setActiveTab={setActiveTab} appData={appData} consumed={consumed} targets={targets} />}
         {activeTab === "programs" && <Programs selectedProgram={selectedProgram} setSelectedProgram={setSelectedProgram} />}
         {activeTab === "today" && <TodayWorkout completedSets={appData.completedSets} toggleSet={toggleSet} resetDay={resetDay} setShowTimer={setShowTimer} />}
-        {activeTab === "nutrition" && <Nutrition consumed={consumed} loggedMeals={appData.loggedMeals} toggleMeal={toggleMeal} water={appData.water} setWater={setWater} targets={targets} setShowMacroEditor={setShowMacroEditor} />}
+        {activeTab === "nutrition" && <Nutrition consumed={consumed} loggedMeals={appData.loggedMeals} toggleMeal={toggleMeal} water={appData.water} setWater={setWater} targets={targets} setShowMacroEditor={setShowMacroEditor} mealPortions={appData.mealPortions||{}} mealSubstitutes={appData.mealSubstitutes||{}} setMealPortion={(i,v)=>setAppData(p=>({...p,mealPortions:{...p.mealPortions,[i]:v}}))} setMealSub={(i,v)=>setAppData(p=>({...p,mealSubstitutes:{...p.mealSubstitutes,[i]:v}}))} />}
         {activeTab === "outdoor" && <Outdoor appData={appData} update={update} />}
         {activeTab === "progress" && <Progress appData={appData} logWeight={logWeight} />}
       </div>
@@ -906,8 +967,197 @@ function TodayWorkout({ completedSets, toggleSet, resetDay, setShowTimer }) {
   );
 }
 
+
+// ─── Meal Plan Section (substitutes + portion size) ───────────────────────────
+function MealPlanSection({ loggedMeals, toggleMeal, mealPortions, mealSubstitutes, setMealPortion, setMealSub }) {
+  const [editingMeal, setEditingMeal] = useState(null); // index of meal being edited
+
+  const PORTIONS = [
+    { label: "Half", value: 0.5 },
+    { label: "3/4", value: 0.75 },
+    { label: "1x", value: 1 },
+    { label: "1.25x", value: 1.25 },
+    { label: "1.5x", value: 1.5 },
+    { label: "2x", value: 2 },
+  ];
+
+  const getActiveMacros = (meal, i) => {
+    const subIdx = mealSubstitutes[i];
+    const base = (subIdx != null && meal.subs?.[subIdx]) ? meal.subs[subIdx].macros : meal.macros;
+    const portion = mealPortions[i] ?? 1;
+    return { cal: Math.round(base.cal * portion), p: Math.round(base.p * portion), c: Math.round(base.c * portion), f: Math.round(base.f * portion) };
+  };
+
+  const getActiveItems = (meal, i) => {
+    const subIdx = mealSubstitutes[i];
+    return (subIdx != null && meal.subs?.[subIdx]) ? meal.subs[subIdx].items : meal.items;
+  };
+
+  const getSubLabel = (meal, i) => {
+    const subIdx = mealSubstitutes[i];
+    return subIdx != null ? meal.subs?.[subIdx]?.label : null;
+  };
+
+  const editing = editingMeal != null ? mealPlan[editingMeal] : null;
+  const editPortion = editingMeal != null ? (mealPortions[editingMeal] ?? 1) : 1;
+  const editSubIdx = editingMeal != null ? (mealSubstitutes[editingMeal] ?? null) : null;
+
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: "#555", letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>MEAL PLAN</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {mealPlan.map((meal, i) => {
+          const macros = getActiveMacros(meal, i);
+          const items = getActiveItems(meal, i);
+          const subLabel = getSubLabel(meal, i);
+          const portion = mealPortions[i] ?? 1;
+          const isLogged = loggedMeals[i];
+          const isModified = subLabel || portion !== 1;
+          return (
+            <div key={i} style={{ background: isLogged ? "#0f1a0f" : "#141414", border: `1px solid ${isLogged ? "#2a4a2a" : "#1e1e1e"}`, borderRadius: 14, padding: 14, transition: "all 0.25s" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <button onClick={() => toggleMeal(i)} style={{ width: 40, height: 40, borderRadius: 10, background: isLogged ? "#1a3a1a" : "#1a1a1a", border: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0, cursor: "pointer" }}>{isLogged ? "✓" : meal.icon}</button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1 }}>{meal.meal}</div>
+                      <div style={{ fontSize: 10, color: "#555", fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>{meal.time}</div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: isLogged ? "#e8ff6b" : "#555" }}>{macros.cal}</div>
+                      <div style={{ fontSize: 9, color: "#444", fontWeight: 700 }}>KCAL</div>
+                    </div>
+                  </div>
+                  {subLabel && (
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#1a2e4a", border: "1px solid #2a4a6a", borderRadius: 6, padding: "2px 8px", marginBottom: 4 }}>
+                      <span style={{ fontSize: 9, color: "#6bbaff", fontWeight: 700, letterSpacing: 1 }}>SUB: {subLabel.toUpperCase()}</span>
+                    </div>
+                  )}
+                  {portion !== 1 && (
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2a1a3a", border: "1px solid #4a2a6a", borderRadius: 6, padding: "2px 8px", marginBottom: 4, marginLeft: subLabel ? 6 : 0 }}>
+                      <span style={{ fontSize: 9, color: "#bf9fff", fontWeight: 700, letterSpacing: 1 }}>{portion}x PORTION</span>
+                    </div>
+                  )}
+                  <div style={{ fontSize: 11, color: "#666", fontFamily: "'Barlow',sans-serif", marginBottom: 8, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{items.join(" · ")}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      {[["P", macros.p, "#e8ff6b"],["C", macros.c, "#6bffb8"],["F", macros.f, "#ff9f6b"]].map(([l,v,c]) => (
+                        <div key={l} style={{ fontSize: 10, fontWeight: 700 }}><span style={{ color: "#555" }}>{l}: </span><span style={{ color: c }}>{v}g</span></div>
+                      ))}
+                    </div>
+                    <button onClick={() => setEditingMeal(i)} style={{ background: isModified ? "#1a2e1a" : "#1a1a1a", border: `1px solid ${isModified ? "#2a5a2a" : "#2a2a2a"}`, borderRadius: 8, padding: "4px 10px", color: isModified ? "#6bffb8" : "#555", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 10, fontWeight: 700, cursor: "pointer", letterSpacing: 1 }}>
+                      {isModified ? "EDITED ✎" : "EDIT ✎"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Meal Editor Sheet ── */}
+      {editingMeal != null && editing && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 150, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setEditingMeal(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, background: "#111", borderRadius: "20px 20px 0 0", borderTop: "1px solid #1e2e1e", padding: "20px 20px 48px", maxHeight: "85vh", overflowY: "auto", fontFamily: "'Barlow Condensed',sans-serif" }}>
+
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 11, color: "#e8ff6b", fontWeight: 700, letterSpacing: 3, marginBottom: 2 }}>CUSTOMIZE MEAL</div>
+                <div style={{ fontSize: 24, fontWeight: 900 }}>{editing.meal.toUpperCase()}</div>
+              </div>
+              <button onClick={() => setEditingMeal(null)} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, padding: "7px 12px", color: "#888", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>DONE</button>
+            </div>
+
+            {/* Portion Size */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 10, color: "#7a90b0", fontWeight: 700, letterSpacing: 2, marginBottom: 10 }}>PORTION SIZE</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {PORTIONS.map(({ label, value }) => {
+                  const active = editPortion === value;
+                  return (
+                    <button key={value} onClick={() => setMealPortion(editingMeal, value)}
+                      style={{ flex: "1 1 auto", minWidth: 56, padding: "10px 4px", borderRadius: 10, border: `1px solid ${active ? "#bf9fff" : "#2a2a3a"}`, background: active ? "#2a1a3a" : "#1a1a2a", color: active ? "#bf9fff" : "#555", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 13, fontWeight: 800, cursor: "pointer", transition: "all 0.15s" }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: 10, background: "#1a1a2a", border: "1px solid #2a2a3a", borderRadius: 10, padding: "10px 14px" }}>
+                {(() => {
+                  const subIdx = mealSubstitutes[editingMeal] ?? null;
+                  const base = (subIdx != null && editing.subs?.[subIdx]) ? editing.subs[subIdx].macros : editing.macros;
+                  const cal = Math.round(base.cal * editPortion);
+                  const p = Math.round(base.p * editPortion);
+                  const c = Math.round(base.c * editPortion);
+                  const f = Math.round(base.f * editPortion);
+                  return (
+                    <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                      <div style={{ flex: 1 }}><div style={{ fontSize: 22, fontWeight: 900, color: "#e8ff6b" }}>{cal}</div><div style={{ fontSize: 9, color: "#555", fontWeight: 700, letterSpacing: 1 }}>KCAL</div></div>
+                      {[["P",p,"#e8ff6b"],["C",c,"#6bffb8"],["F",f,"#ff9f6b"]].map(([l,v,cl]) => (
+                        <div key={l} style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 900, color: cl }}>{v}g</div><div style={{ fontSize: 9, color: "#555", fontWeight: 700, letterSpacing: 1 }}>{l}</div></div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Substitutes */}
+            <div>
+              <div style={{ fontSize: 10, color: "#7a90b0", fontWeight: 700, letterSpacing: 2, marginBottom: 10 }}>SUBSTITUTE OPTIONS</div>
+
+              {/* Default option */}
+              <button onClick={() => setMealSub(editingMeal, null)}
+                style={{ width: "100%", background: editSubIdx === null ? "#1a2e1a" : "#141414", border: `1px solid ${editSubIdx === null ? "#2a5a2a" : "#1e1e1e"}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    {editSubIdx === null && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#6bffb8", flexShrink: 0 }} />}
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#f0ede6", fontFamily: "'Barlow Condensed',sans-serif" }}>Original Plan</div>
+                  </div>
+                  <div style={{ fontSize: 11, color: "#555", fontFamily: "'Barlow',sans-serif", lineHeight: 1.4 }}>{editing.items.join(" · ")}</div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: editSubIdx === null ? "#e8ff6b" : "#555" }}>{editing.macros.cal}</div>
+                  <div style={{ fontSize: 9, color: "#444", fontWeight: 700 }}>KCAL</div>
+                </div>
+              </button>
+
+              {editing.subs?.map((sub, si) => (
+                <button key={si} onClick={() => setMealSub(editingMeal, si)}
+                  style={{ width: "100%", background: editSubIdx === si ? "#162e4a" : "#141414", border: `1px solid ${editSubIdx === si ? "#2a4a6a" : "#1e1e1e"}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      {editSubIdx === si && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#6bbaff", flexShrink: 0 }} />}
+                      <div style={{ fontSize: 14, fontWeight: 800, color: "#f0ede6", fontFamily: "'Barlow Condensed',sans-serif" }}>{sub.label}</div>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#555", fontFamily: "'Barlow',sans-serif", lineHeight: 1.4 }}>{sub.items.join(" · ")}</div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
+                    <div style={{ fontSize: 15, fontWeight: 900, color: editSubIdx === si ? "#6bbaff" : "#555" }}>{sub.macros.cal}</div>
+                    <div style={{ fontSize: 9, color: "#444", fontWeight: 700 }}>KCAL</div>
+                  </div>
+                </button>
+              ))}
+
+              {/* Reset button */}
+              {(editSubIdx !== null || (mealPortions[editingMeal] ?? 1) !== 1) && (
+                <button onClick={() => { setMealSub(editingMeal, null); setMealPortion(editingMeal, 1); }}
+                  style={{ width: "100%", background: "none", border: "1px solid #2a2a2a", borderRadius: 10, padding: "10px 0", marginTop: 4, color: "#555", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 1, cursor: "pointer" }}>
+                  RESET TO DEFAULTS
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Nutrition ─────────────────────────────────────────────────────────────────
-function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets, setShowMacroEditor }) {
+function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets, setShowMacroEditor, mealPortions, mealSubstitutes, setMealPortion, setMealSub }) {
   const [activeSection, setActiveSection] = useState("macros");
   const calPct = Math.round((consumed.cal / targets.cal) * 100);
   return (
@@ -973,30 +1223,7 @@ function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets
       )}
 
       {activeSection === "meals" && (
-        <div>
-          <div style={{ fontSize: 10, color: "#555", letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>MEAL PLAN</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {mealPlan.map((meal, i) => (
-              <div key={i} className="card-hover" onClick={() => toggleMeal(i)} style={{ background: loggedMeals[i] ? "#0f1a0f" : "#141414", border: `1px solid ${loggedMeals[i] ? "#2a4a2a" : "#1e1e1e"}`, borderRadius: 14, padding: 14, transition: "all 0.25s" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: loggedMeals[i] ? "#1a3a1a" : "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{loggedMeals[i] ? "✓" : meal.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div><div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1 }}>{meal.meal}</div><div style={{ fontSize: 10, color: "#555", fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>{meal.time}</div></div>
-                      <div style={{ textAlign: "right" }}><div style={{ fontSize: 18, fontWeight: 900, color: loggedMeals[i] ? "#e8ff6b" : "#555" }}>{meal.macros.cal}</div><div style={{ fontSize: 9, color: "#444", fontWeight: 700 }}>KCAL</div></div>
-                    </div>
-                    <div style={{ fontSize: 11, color: "#666", fontFamily: "'Barlow',sans-serif", marginBottom: 8, lineHeight: 1.4 }}>{meal.items.join(" · ")}</div>
-                    <div style={{ display: "flex", gap: 10 }}>
-                      {[["P",meal.macros.p,"#e8ff6b"],["C",meal.macros.c,"#6bffb8"],["F",meal.macros.f,"#ff9f6b"]].map(([l,v,c]) => (
-                        <div key={l} style={{ fontSize: 10, fontWeight: 700 }}><span style={{ color: "#555" }}>{l}: </span><span style={{ color: c }}>{v}g</span></div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <MealPlanSection loggedMeals={loggedMeals} toggleMeal={toggleMeal} mealPortions={mealPortions} mealSubstitutes={mealSubstitutes} setMealPortion={setMealPortion} setMealSub={setMealSub} />
       )}
 
       {activeSection === "water" && (
