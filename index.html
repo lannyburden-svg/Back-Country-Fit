@@ -1004,6 +1004,118 @@ function TodayWorkout({ completedSets, toggleSet, resetDay, setShowTimer }) {
   );
 }
 
+
+// ─── Grocery List ──────────────────────────────────────────────────────────────
+const GROCERY_LIST = {
+  "🥩 Protein": [
+    "Whole eggs (×12)",
+    "Whey protein powder (1 bag)",
+    "Grilled chicken breast (600g)",
+    "Salmon fillet (400g)",
+    "Ground beef, lean (200g)",
+    "Pork tenderloin (220g)",
+    "Canned tuna (×3)",
+    "Greek yogurt (600g)",
+    "Cottage cheese (200g)",
+  ],
+  "🌾 Carbs & Grains": [
+    "Rolled oats (1 bag)",
+    "White rice (1 bag)",
+    "Brown rice (1 bag)",
+    "Sweet potato (×2)",
+    "Whole wheat bread (1 loaf)",
+    "Granola (1 bag)",
+    "Rice cakes (1 pack)",
+    "Pasta (1 bag)",
+  ],
+  "🥦 Vegetables": [
+    "Mixed greens / salad bag",
+    "Broccoli (1 head)",
+    "Asparagus (1 bunch)",
+    "Steamed veg mix (frozen bag)",
+    "Green beans (1 bag)",
+    "Tomatoes (×2)",
+  ],
+  "🍌 Fruit": [
+    "Bananas (×4)",
+    "Blueberries (1 punnet)",
+    "Mixed berries (frozen bag)",
+    "Apple (×2)",
+  ],
+  "🥑 Fats & Extras": [
+    "Olive oil",
+    "Almond butter (1 jar)",
+    "Almonds (1 bag)",
+    "Walnuts (1 bag)",
+    "Avocado (×2)",
+    "Garlic butter / garlic",
+    "Marinara sauce (1 jar)",
+    "Mustard",
+    "Salsa",
+    "Honey",
+    "Maple syrup",
+  ],
+  "☕ Drinks": [
+    "Black coffee / coffee beans",
+  ],
+};
+
+function GroceryList() {
+  const [checked, setChecked] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("bcfit-groceries") || "{}"); } catch { return {}; }
+  });
+
+  const toggle = (item) => {
+    setChecked(prev => {
+      const next = { ...prev, [item]: !prev[item] };
+      localStorage.setItem("bcfit-groceries", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const clearAll = () => {
+    setChecked({});
+    localStorage.removeItem("bcfit-groceries");
+  };
+
+  const total = Object.values(GROCERY_LIST).flat().length;
+  const done = Object.values(checked).filter(Boolean).length;
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 11, color: "#555", fontWeight: 700, letterSpacing: 2 }}>WEEKLY SHOP</div>
+          <div style={{ fontSize: 13, color: "#6bffb8", fontWeight: 800 }}>{done} / {total} items</div>
+        </div>
+        <button onClick={clearAll} style={{ background: "none", border: "1px solid #2a2a2a", borderRadius: 8, padding: "6px 12px", color: "#555", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, cursor: "pointer" }}>RESET</button>
+      </div>
+
+      <div style={{ height: 4, background: "#1e1e1e", borderRadius: 2, overflow: "hidden", marginBottom: 16 }}>
+        <div style={{ height: "100%", width: `${(done/total)*100}%`, background: "#6bffb8", borderRadius: 2, transition: "width 0.4s" }} />
+      </div>
+
+      {Object.entries(GROCERY_LIST).map(([category, items]) => (
+        <div key={category} style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1, marginBottom: 8, color: "#e8ff6b" }}>{category}</div>
+          {items.map(item => {
+            const isDone = !!checked[item];
+            return (
+              <button key={item} onClick={() => toggle(item)}
+                style={{ width: "100%", background: isDone ? "#0f1a0f" : "#141414", border: `1px solid ${isDone ? "#2a4a2a" : "#1e1e1e"}`, borderRadius: 10, padding: "11px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", textAlign: "left" }}>
+                <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${isDone ? "#6bffb8" : "#333"}`, background: isDone ? "#6bffb8" : "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
+                  {isDone && <span style={{ fontSize: 12, color: "#0d0d0d", fontWeight: 900 }}>✓</span>}
+                </div>
+                <span style={{ fontSize: 14, fontWeight: isDone ? 600 : 700, color: isDone ? "#3a5a3a" : "#ccc", fontFamily: "'Barlow',sans-serif", textDecoration: isDone ? "line-through" : "none", transition: "all 0.15s" }}>{item}</span>
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Nutrition ─────────────────────────────────────────────────────────────────
 function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets, setShowMacroEditor, setShowPhotoLogger, photoMeals, removePhotoMeal }) {
   const [activeSection, setActiveSection] = useState("macros");
@@ -1042,7 +1154,7 @@ function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets
 
       {/* Section tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-        {[["macros","MACROS"],["meals","MEAL PLAN"],["water","HYDRATION"]].map(([id,label]) => (
+        {[["macros","MACROS"],["meals","MEAL PLAN"],["groceries","GROCERIES"],["water","HYDRATION"]].map(([id,label]) => (
           <button key={id} onClick={() => setActiveSection(id)} style={{ flex: 1, padding: "9px 4px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 11, fontWeight: 800, letterSpacing: 1, background: activeSection===id?"#e8ff6b":"#141414", color: activeSection===id?"#0d0d0d":"#555", transition: "all 0.2s" }}>{label}</button>
         ))}
       </div>
@@ -1121,6 +1233,11 @@ function Nutrition({ consumed, loggedMeals, toggleMeal, water, setWater, targets
             ))}
           </div>
         </div>
+      )}
+
+
+      {activeSection === "groceries" && (
+        <GroceryList />
       )}
 
       {activeSection === "water" && (
