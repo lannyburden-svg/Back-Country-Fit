@@ -33,11 +33,11 @@ const programs = [
   { id: 2, title: "Trail Ready", subtitle: "Cardio + Conditioning", weeks: 8, level: "Beginner", goal: "Fat Loss & Stamina", sessions: 3, tag: "GREAT FOR DADS", tagColor: "#6bbaff", img: "🌲", desc: "Short sessions, serious results. Built for busy dads who need to be fit enough to keep up with the kids.", color: "#1a1f2e" },
   { id: 3, title: "Peak Season", subtitle: "Power & Performance", weeks: 16, level: "Advanced", goal: "Peak Athleticism", sessions: 5, tag: "SCIENCE-BACKED", tagColor: "#ff9f6b", img: "⛰️", desc: "Peak output. Periodized programming designed to maximize strength, power, and backcountry readiness.", color: "#2e1a1a" },
 ];
-const workoutDays = [
-  { day: "MON", done: false, type: "strength" }, { day: "TUE", done: false, type: "strength" },
-  { day: "WED", done: false, type: "recovery" }, { day: "THU", done: false, type: "strength" },
-  { day: "FRI", done: false, type: "power" }, { day: "SAT", done: false, type: "cardio" },
-  { day: "SUN", done: false, type: "rest" },
+const WEEK_TEMPLATE = [
+  { day: "1", type: "strength" }, { day: "2", type: "strength" },
+  { day: "3", type: "recovery" }, { day: "4", type: "strength" },
+  { day: "5", type: "power" }, { day: "6", type: "cardio" },
+  { day: "7", type: "rest" },
 ];
 const todayExercises = [
   { name: "Barbell Back Squat", sets: "4", reps: "6–8", rir: "2", muscle: "Quads" },
@@ -59,7 +59,7 @@ const typeColors = { strength: "#e8ff6b", power: "#ff9f6b", cardio: "#6bffb8", r
 const STORAGE_KEY = "bcfit-data-v2";
 const DEFAULT_STATE = {
   completedSets: {}, loggedMeals: {}, water: 0,
-  workoutsThisWeek: 0, currentWeek: 1, streak: 0, lastSaved: null,
+  workoutsThisWeek: 0, currentWeek: 0, streak: 0, lastSaved: null, activeProgram: 1,
   weightLog: [],
   macroTargets: { cal: 3300, p: 246, c: 340, f: 84 },
   photoMeals: [],
@@ -593,7 +593,7 @@ function BackCountryFit() {
 
       <div style={{ padding: activeTab === "outdoor" ? "16px 0 110px" : "16px 20px 110px", overflowY: "auto", maxHeight: "calc(100vh - 140px)" }}>
         {activeTab === "dashboard" && <Dashboard setActiveTab={setActiveTab} appData={appData} consumed={consumed} targets={targets} />}
-        {activeTab === "programs" && <Programs selectedProgram={selectedProgram} setSelectedProgram={setSelectedProgram} />}
+        {activeTab === "programs" && <Programs selectedProgram={selectedProgram} setSelectedProgram={setSelectedProgram} activeProgram={appData.activeProgram} setActiveProgram={(id) => setAppData(p => ({ ...p, activeProgram: id, currentWeek: 1, workoutsThisWeek: 0, completedSets: {} }))} />}
         {activeTab === "today" && <TodayWorkout completedSets={appData.completedSets} toggleSet={toggleSet} resetDay={resetDay} setShowTimer={setShowTimer} />}
         {activeTab === "nutrition" && <Nutrition consumed={consumed} loggedMeals={appData.loggedMeals} toggleMeal={toggleMeal} water={appData.water} setWater={setWater} targets={targets} setShowMacroEditor={setShowMacroEditor} setShowPhotoLogger={setShowPhotoLogger} photoMeals={appData.photoMeals||[]} removePhotoMeal={removePhotoMeal} />}
         {activeTab === "outdoor" && <Outdoor appData={appData} update={update} />}
@@ -661,19 +661,22 @@ function Dashboard({ setActiveTab, appData, consumed, targets }) {
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, letterSpacing: 2, color: "#555", fontWeight: 700, marginBottom: 10 }}>THIS WEEK</div>
         <div style={{ display: "flex", gap: 6 }}>
-          {workoutDays.map((d) => (
-            <div key={d.day} style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ fontSize: 9, color: "#555", fontWeight: 700, letterSpacing: 1, marginBottom: 5 }}>{d.day}</div>
-              <div style={{ height: 36, borderRadius: 8, background: d.done ? typeColors[d.type] : d.type === "rest" ? "#111" : "#141414", border: `1px solid ${d.done ? typeColors[d.type] : "#1e1e1e"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: d.done ? 14 : 10, color: d.done ? "#0d0d0d" : typeColors[d.type], fontWeight: 700 }}>
-                {d.done ? "✓" : d.type === "rest" ? "—" : "·"}
+          {WEEK_TEMPLATE.map((d, di) => {
+            const done = di < appData.workoutsThisWeek;
+            return (
+              <div key={d.day} style={{ flex: 1, textAlign: "center" }}>
+                <div style={{ fontSize: 9, color: "#555", fontWeight: 700, letterSpacing: 1, marginBottom: 5 }}>{d.day}</div>
+                <div style={{ height: 36, borderRadius: 8, background: done ? typeColors[d.type] : d.type === "rest" ? "#111" : "#141414", border: `1px solid ${done ? typeColors[d.type] : "#1e1e1e"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: done ? 14 : 10, color: done ? "#0d0d0d" : typeColors[d.type], fontWeight: 700 }}>
+                  {done ? "✓" : d.type === "rest" ? "—" : "·"}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       <div style={{ background: "#141414", border: "1px solid #1e1e1e", borderRadius: 14, padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div><div style={{ fontSize: 11, letterSpacing: 2, color: "#555", fontWeight: 700 }}>CURRENT PROGRAM</div><div style={{ fontSize: 20, fontWeight: 800 }}>Backcountry Build</div></div>
+          <div><div style={{ fontSize: 11, letterSpacing: 2, color: "#555", fontWeight: 700 }}>CURRENT PROGRAM</div><div style={{ fontSize: 20, fontWeight: 800 }}>{(programs.find(p => p.id === appData.activeProgram) || programs[0]).title}</div></div>
           <div style={{ fontSize: 28, fontWeight: 900, color: "#e8ff6b" }}>{Math.round(appData.currentWeek/12*100)}%</div>
         </div>
         <div className="progress-bar"><div className="progress-fill" style={{ width: `${Math.round(appData.currentWeek/12*100)}%` }} /></div>
@@ -752,7 +755,7 @@ const programDetails = {
 };
 
 // ─── Programs ──────────────────────────────────────────────────────────────────
-function Programs({ selectedProgram, setSelectedProgram }) {
+function Programs({ selectedProgram, setSelectedProgram, activeProgram, setActiveProgram }) {
   const [stage, setStage] = useState("list"); // list | preview | detail
 
   const handleSelect = (id) => { setSelectedProgram(id); setStage("preview"); };
@@ -773,7 +776,7 @@ function Programs({ selectedProgram, setSelectedProgram }) {
         {/* Hero */}
         <div style={{ background: `linear-gradient(135deg,${p.color} 0%,#0d0d0d 100%)`, borderRadius: 16, padding: 24, marginBottom: 16, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -10, right: -10, fontSize: 90, opacity: 0.1 }}>{p.img}</div>
-          <div style={{ display: "inline-block", background: p.tagColor, color: "#0d0d0d", fontSize: 9, fontWeight: 800, letterSpacing: 2, padding: "3px 8px", borderRadius: 4, marginBottom: 10 }}>{p.tag}</div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}><div style={{ display: "inline-block", background: p.tagColor, color: "#0d0d0d", fontSize: 9, fontWeight: 800, letterSpacing: 2, padding: "3px 8px", borderRadius: 4 }}>{p.tag}</div>{activeProgram === p.id && <div style={{ display: "inline-block", background: "#6bffb8", color: "#0d0d0d", fontSize: 9, fontWeight: 800, letterSpacing: 2, padding: "3px 8px", borderRadius: 4 }}>ACTIVE</div>}</div>
           <div style={{ fontSize: 11, letterSpacing: 3, color: "#888", fontWeight: 700, marginBottom: 4 }}>BEFORE YOU START</div>
           <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1, marginBottom: 6 }}>{p.title}</div>
           <div style={{ fontSize: 14, color: "#888", fontFamily: "'Barlow',sans-serif" }}>{p.subtitle}</div>
@@ -842,8 +845,8 @@ function Programs({ selectedProgram, setSelectedProgram }) {
           <button onClick={() => setStage("detail")} style={{ flex: 1, background: "none", border: "1px solid #2a4a2a", padding: 14, borderRadius: 10, fontFamily: "'Barlow Condensed',sans-serif", fontSize: 14, fontWeight: 800, letterSpacing: 1, cursor: "pointer", color: "#6bffb8" }}>
             SEE FULL DETAILS
           </button>
-          <button style={{ flex: 2, background: "#e8ff6b", color: "#0d0d0d", border: "none", padding: 14, borderRadius: 10, fontFamily: "'Barlow Condensed',sans-serif", fontSize: 16, fontWeight: 800, letterSpacing: 1, cursor: "pointer" }}>
-            START PROGRAM →
+          <button onClick={() => { setActiveProgram(selectedProgram); setStage("list"); }} style={{ flex: 2, background: "#e8ff6b", color: "#0d0d0d", border: "none", padding: 14, borderRadius: 10, fontFamily: "'Barlow Condensed',sans-serif", fontSize: 16, fontWeight: 800, letterSpacing: 1, cursor: "pointer" }}>
+            {activeProgram === selectedProgram ? "ACTIVE PROGRAM ✓" : "START PROGRAM →"}
           </button>
         </div>
       </div>
