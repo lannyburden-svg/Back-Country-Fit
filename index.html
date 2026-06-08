@@ -976,7 +976,7 @@ function Outdoor({appData,update}){
   return h('div',{className:"fade",style:{paddingBottom:20}},
     // Tabs
     h('div',{style:{display:"flex",gap:6,marginBottom:14}},
-      ...[["track","🗺 TRACK"],["history","📋 HISTORY"],["mmf","🔵 MAPMYFIT"]].map(([id,l])=>
+      ...[["track","🗺 TRACK"],["history","📋 HISTORY"],["strava","🟠 STRAVA"]].map(([id,l])=>
         h('button',{key:id,onClick:()=>{setSec(id);if(id==="track")lMap.current=null;},style:{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontSize:11,fontWeight:800,letterSpacing:1,background:sec===id?"#e8ff6b":"#1e3d65",color:sec===id?"#1a3a5c":"#7a90b0",transition:"all .2s"}},l)
       )
     ),
@@ -1042,48 +1042,45 @@ function Outdoor({appData,update}){
         )
     ),
 
-    // MAPMYFITNESS
-    sec==="mmf"&&h('div',null,
-      // Status card
-      h(Card,{style:{padding:18,marginBottom:14,background:appData.mmfConnected?"#0e1828":"#1e3d65",border:`1px solid ${appData.mmfConnected?"#1e3458":"#2a4f7a"}`}},
-        h('div',{style:{display:"flex",alignItems:"center",gap:14,marginBottom:appData.mmfConnected?0:12}},
-          h('div',{style:{width:46,height:46,borderRadius:12,background:"#1565c0",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},
-            h('svg',{width:28,height:28,viewBox:"0 0 24 24",fill:"none"},
-              h('path',{d:"M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z",fill:"#fff"}),
-              h('circle',{cx:12,cy:9,r:2.5,fill:"#1565c0"})
+    // STRAVA
+    sec==="strava"&&h('div',null,
+      h(Card,{style:{padding:18,marginBottom:14,background:appData.stravaConnected?"#1e2010":"#1e3d65",border:`1px solid ${appData.stravaConnected?"#3a4020":"#2a4f7a"}`}},
+        h('div',{style:{display:"flex",alignItems:"center",gap:14,marginBottom:appData.stravaConnected?0:12}},
+          h('div',{style:{width:46,height:46,borderRadius:12,background:"#fc4c02",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},
+            h('svg',{width:26,height:26,viewBox:"0 0 24 24",fill:"white"},
+              h('path',{d:"M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066z"}),
+              h('path',{d:"M10.232 13.828L7.169 7.728 4.104 13.828H1l6.17-12 6.17 12z"})
             )
           ),
           h('div',null,
-            h('div',{style:{fontSize:20,fontWeight:900}},"MapMyFitness"),
-            h('div',{style:{fontSize:11,color:appData.mmfConnected?"#6bffb8":"#ff9f6b",fontWeight:700,letterSpacing:1}},appData.mmfConnected?"✓ CONNECTED":"NOT CONNECTED"),
-            h('div',{style:{fontSize:10,color:"#4a6080",fontFamily:"'Barlow',sans-serif",marginTop:2}},"by Under Armour")
+            h('div',{style:{fontSize:20,fontWeight:900}},"Strava"),
+            h('div',{style:{fontSize:11,color:appData.stravaConnected?"#6bffb8":"#ff9f6b",fontWeight:700,letterSpacing:1}},appData.stravaConnected?"✓ CONNECTED":"NOT CONNECTED"),
+            h('div',{style:{fontSize:10,color:"#4a6080",fontFamily:"'Barlow',sans-serif",marginTop:2}},"Activity tracking & route sync")
           )
         ),
-        !appData.mmfConnected&&h('div',{style:{fontSize:12,color:"#7a90b0",fontFamily:"'Barlow',sans-serif",lineHeight:1.6,marginTop:4}},"Connect MapMyFitness to import your workouts and routes, and export your tracked activities.")
+        !appData.stravaConnected&&h('div',{style:{fontSize:12,color:"#7a90b0",fontFamily:"'Barlow',sans-serif",lineHeight:1.6,marginTop:4}},"Connect Strava to import your runs, hikes & rides, and export your tracked GPS activities.")
       ),
 
-      !appData.mmfConnected
+      !appData.stravaConnected
         ?h('div',null,
-          // Setup steps
           h(Card,{style:{padding:16,marginBottom:14,background:"#0e1828"}},
             h(Label,{style:{marginBottom:12,color:"#6bbaff"}},"SETUP STEPS"),
             ...[
-              ["1","Go to developer.underarmour.com and sign in"],
-              ["2","Click 'Create Application' and fill in your app details"],
-              ["3","Set your Redirect URI to your GitHub Pages URL"],
-              ["4","Copy your Client ID and Client Secret from the dashboard"],
+              ["1","Go to developers.strava.com and sign in"],
+              ["2","Click 'Create & Manage Your App'"],
+              ["3","Set Authorization Callback Domain to your GitHub Pages URL"],
+              ["4","Copy your Client ID and Client Secret"],
               ["5","Paste them below and tap Connect"],
             ].map(([n,t])=>
               h('div',{key:n,style:{display:"flex",gap:12,marginBottom:10,alignItems:"flex-start"}},
-                h('div',{style:{width:22,height:22,borderRadius:"50%",background:"#1565c0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff",flexShrink:0}},n),
+                h('div',{style:{width:22,height:22,borderRadius:"50%",background:"#fc4c02",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff",flexShrink:0}},n),
                 h('div',{style:{fontSize:12,color:"#7a90b0",fontFamily:"'Barlow',sans-serif",lineHeight:1.5,paddingTop:2}},t)
               )
             )
           ),
-          // Credential inputs
           h('div',{style:{marginBottom:10}},
-            h(Label,{style:{marginBottom:6}},"CLIENT ID"),
-            h('input',{value:clientId,onChange:e=>setClientId(e.target.value),placeholder:"Your Under Armour Client ID",style:{width:"100%",background:"#1e3d65",border:"1px solid #2a4f7a",borderRadius:8,padding:"12px 14px",color:"#f0ede6",fontSize:16,fontWeight:700}})
+            h(Label,{style:{marginBottom:6}},"STRAVA CLIENT ID"),
+            h('input',{value:clientId,onChange:e=>setClientId(e.target.value),placeholder:"e.g. 123456",style:{width:"100%",background:"#1e3d65",border:"1px solid #2a4f7a",borderRadius:8,padding:"12px 14px",color:"#f0ede6",fontSize:16,fontWeight:700}})
           ),
           h('div',{style:{marginBottom:16}},
             h(Label,{style:{marginBottom:6}},"CLIENT SECRET"),
@@ -1091,42 +1088,39 @@ function Outdoor({appData,update}){
           ),
           h('button',{
             onClick:()=>{
-              if(!clientId){alert("Enter your Client ID first");return;}
-              update({mmfClientId:clientId});
-              sessionStorage.setItem("bcfit-mmf-secret",secret);
+              if(!clientId){alert("Enter your Strava Client ID first");return;}
+              update({stravaClientId:clientId});
+              sessionStorage.setItem("bcfit-strava-secret",secret);
               const r=encodeURIComponent(window.location.href.split("?")[0]);
-              window.location.href=`https://www.underarmour.com/auth/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${r}&scope=activity`;
+              window.location.href=`https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${r}&approval_prompt=auto&scope=activity:read_all,activity:write`;
             },
-            style:{width:"100%",background:"#1565c0",color:"#fff",border:"none",padding:16,borderRadius:12,fontSize:16,fontWeight:800,letterSpacing:1,cursor:"pointer",marginBottom:10}
-          },"CONNECT TO MAPMYFITNESS →"),
-          h('div',{style:{fontSize:10,color:"#4a6080",fontFamily:"'Barlow',sans-serif",textAlign:"center",lineHeight:1.6}},"You'll be redirected to Under Armour to authorize.",h('br'),"Credentials are stored on your device only.")
+            style:{width:"100%",background:"#fc4c02",color:"#fff",border:"none",padding:16,borderRadius:12,fontSize:16,fontWeight:800,letterSpacing:1,cursor:"pointer",marginBottom:10}
+          },"CONNECT TO STRAVA →"),
+          h('div',{style:{fontSize:10,color:"#4a6080",fontFamily:"'Barlow',sans-serif",textAlign:"center",lineHeight:1.6}},"You'll be redirected to Strava to authorize.",h('br'),"Credentials are stored on your device only.")
         )
         :h('div',null,
-          // Connected actions
           h('div',{style:{display:"flex",flexDirection:"column",gap:10,marginBottom:16}},
             ...[
-              ["⬇️","Import from MapMyFitness","Pull your recent runs, hikes & workouts"],
-              ["⬆️","Export to MapMyFitness","Push your tracked GPS activities"],
-              ["🔄","Sync Workout Log","Send strength sessions to your MMF diary"],
+              ["⬇️","Import from Strava","Pull your recent runs, hikes & rides"],
+              ["⬆️","Export to Strava","Push your tracked GPS activities"],
             ].map(([ic,t,s])=>
-              h('button',{key:t,style:{background:"#1e3d65",border:"1px solid #1565c044",borderRadius:12,padding:16,display:"flex",alignItems:"center",gap:14,cursor:"pointer",width:"100%"}},
+              h('button',{key:t,style:{background:"#1e3d65",border:"1px solid #fc4c0244",borderRadius:12,padding:16,display:"flex",alignItems:"center",gap:14,cursor:"pointer",width:"100%"}},
                 h('div',{style:{fontSize:26}},ic),
                 h('div',{style:{textAlign:"left"}},
                   h('div',{style:{fontSize:16,fontWeight:800,color:"#f0ede6"}},t),
                   h('div',{style:{fontSize:11,color:"#7a90b0",fontFamily:"'Barlow',sans-serif"}},s)
                 ),
-                h('div',{style:{marginLeft:"auto",fontSize:16,color:"#6bbaff"}},"›")
+                h('div',{style:{marginLeft:"auto",fontSize:16,color:"#fc4c02"}},"›")
               )
             )
           ),
-          // Last sync info
           h(Card,{style:{padding:14,marginBottom:14,background:"#0e1828"}},
             h('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
               h('div',null,h(Label,null,"LAST SYNCED"),h('div',{style:{fontSize:14,fontWeight:800,marginTop:2}},"Never")),
-              h('button',{style:{background:"#1565c0",border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer"}},"SYNC NOW")
+              h('button',{style:{background:"#fc4c02",border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer"}},"SYNC NOW")
             )
           ),
-          h('button',{onClick:()=>update({mmfConnected:false}),style:{width:"100%",background:"none",border:"1px solid #2a4f7a",borderRadius:10,padding:12,fontSize:13,fontWeight:700,color:"#7a90b0",cursor:"pointer"}},"DISCONNECT MAPMYFITNESS")
+          h('button',{onClick:()=>update({stravaConnected:false}),style:{width:"100%",background:"none",border:"1px solid #2a4f7a",borderRadius:10,padding:12,fontSize:13,fontWeight:700,color:"#7a90b0",cursor:"pointer"}},"DISCONNECT STRAVA")
         )
     )
   );
