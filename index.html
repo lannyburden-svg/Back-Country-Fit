@@ -336,24 +336,24 @@ function RestTimer({ onClose }) {
 
 // ─── AI Photo Food Logger ──────────────────────────────────────────────────────
 function PhotoFoodLogger({ onAdd, onClose }) {
-  const [stage, setStage] = useState(() => localStorage.getItem("bcfit-anthropic-key") ? "upload" : "apikey");
+  const [stage, setStage] = useState(() => localStorage.getItem("bcfit-gemini-key") ? "upload" : "apikey");
   const [preview, setPreview] = useState(null);
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
-  const [apiKeyInput, setApiKeyInput] = useState(() => localStorage.getItem("bcfit-anthropic-key") || "");
+  const [apiKeyInput, setApiKeyInput] = useState(() => localStorage.getItem("bcfit-gemini-key") || "");
   const fileRef = useRef(null);
 
   const saveApiKey = () => {
     const k = apiKeyInput.trim();
-    if (!k.startsWith("sk-ant-")) { setErrorMsg("Key should start with sk-ant-"); return; }
-    localStorage.setItem("bcfit-anthropic-key", k);
+    if (!k) { setErrorMsg("Please enter your API key."); return; }
+    localStorage.setItem("bcfit-gemini-key", k);
     setErrorMsg(""); setStage("upload");
   };
 
   const handleFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const key = localStorage.getItem("bcfit-anthropic-key");
+    const key = localStorage.getItem("bcfit-gemini-key");
     if (!key) { setStage("apikey"); return; }
     const reader = new FileReader();
     reader.onload = async (ev) => {
@@ -361,24 +361,22 @@ function PhotoFoodLogger({ onAdd, onClose }) {
       setPreview(ev.target.result);
       setStage("analyzing");
       try {
-        const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + key, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 1000,
-            messages: [{
-              role: "user",
-              content: [
-                { type: "image", source: { type: "base64", media_type: file.type || "image/jpeg", data: b64 } },
-                { type: "text", text: 'Analyze this food image and estimate nutritional content. Respond ONLY with a JSON object, no markdown, no backticks, no extra text. Format: {"name":"meal name","cal":number,"p":number,"c":number,"f":number,"items":["item1","item2"]} where cal=calories, p=protein grams, c=carb grams, f=fat grams.' }
+            contents: [{
+              parts: [
+                { inline_data: { mime_type: file.type || "image/jpeg", data: b64 } },
+                { text: 'Analyze this food image and estimate nutritional content. Respond ONLY with a JSON object, no markdown, no backticks, no extra text. Format: {"name":"meal name","cal":number,"p":number,"c":number,"f":number,"items":["item1","item2"]} where cal=calories, p=protein grams, c=carb grams, f=fat grams.' }
               ]
-            }]
+            }],
+            generationConfig: { maxOutputTokens: 500 }
           })
         });
         const data = await resp.json();
         if (data.error) throw new Error(data.error.message || "API error");
-        const text = data.content?.find(b => b.type === "text")?.text || "";
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
         const clean = text.replace(/```json|```/g, "").trim();
         const parsed = JSON.parse(clean);
         setResult(parsed);
@@ -406,10 +404,10 @@ function PhotoFoodLogger({ onAdd, onClose }) {
           <div style={{ background: "#1a1a2a", border: "1px solid #2a2a3a", borderRadius: 14, padding: 18 }}>
             <div style={{ fontSize: 11, color: "#6bbaff", fontWeight: 700, letterSpacing: 2, marginBottom: 8 }}>ANTHROPIC API KEY REQUIRED</div>
             <div style={{ fontSize: 12, color: "#7a9ab8", fontFamily: "'Barlow',sans-serif", lineHeight: 1.6, marginBottom: 14 }}>
-              The AI scanner uses Claude vision. Get a free API key at <a href="https://console.anthropic.com" target="_blank" rel="noopener" style={{ color: "#6bbaff" }}>console.anthropic.com</a>.
+              The AI scanner uses Google Gemini vision. Get a free API key at <a href="https://aistudio.google.com" target="_blank" rel="noopener" style={{ color: "#6bbaff" }}>aistudio.google.com</a> — free tier, no credit card needed.
             </div>
             <div style={{ fontSize: 10, color: "#7a90b0", fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>YOUR API KEY</div>
-            <input type="password" value={apiKeyInput} onChange={e => setApiKeyInput(e.target.value)} placeholder="sk-ant-api03-..."
+            <input type="password" value={apiKeyInput} onChange={e => setApiKeyInput(e.target.value)} placeholder="AIza..."
               style={{ width: "100%", background: "#1a2a3a", border: "1px solid #2a3a4a", borderRadius: 8, padding: "12px 14px", color: "#f0ede6", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 15, fontWeight: 700, marginBottom: 10 }} />
             {errorMsg && <div style={{ fontSize: 11, color: "#ff6b6b", marginBottom: 10 }}>{errorMsg}</div>}
             <button onClick={saveApiKey} style={{ width: "100%", background: "#e8ff6b", color: "#0d0d0d", border: "none", padding: "13px 0", borderRadius: 10, fontFamily: "'Barlow Condensed',sans-serif", fontSize: 15, fontWeight: 800, cursor: "pointer", letterSpacing: 1 }}>SAVE & CONTINUE</button>
@@ -429,7 +427,7 @@ function PhotoFoodLogger({ onAdd, onClose }) {
               <span>🔬</span>
               <div style={{ fontSize: 11, color: "#6b9b6b", fontFamily: "'Barlow',sans-serif", lineHeight: 1.5 }}>Claude AI will analyze your photo and estimate calories, protein, carbs, and fat.</div>
             </div>
-            <button onClick={() => { localStorage.removeItem("bcfit-anthropic-key"); setApiKeyInput(""); setStage("apikey"); }} style={{ background: "none", border: "none", fontSize: 10, color: "#333", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, letterSpacing: 1 }}>CHANGE API KEY</button>
+            <button onClick={() => { localStorage.removeItem("bcfit-gemini-key"); setApiKeyInput(""); setStage("apikey"); }} style={{ background: "none", border: "none", fontSize: 10, color: "#333", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, letterSpacing: 1 }}>CHANGE API KEY</button>
           </div>
         )}
 
